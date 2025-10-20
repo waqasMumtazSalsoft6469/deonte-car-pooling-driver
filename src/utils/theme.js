@@ -5,7 +5,7 @@ export const colors = {
   gray: '#EBEBEB',
   gray2: '#F3F3F3',
   // primaryColor: '#5568FE',
-  primaryColor: 'black',
+  primaryColor: '#1F176D',
 
   red: '#FF1D1D',
   gray3: '#77838F',

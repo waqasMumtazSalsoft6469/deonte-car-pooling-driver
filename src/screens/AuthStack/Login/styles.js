@@ -1,15 +1,26 @@
 import {StyleSheet} from 'react-native';
-import theme from '../../../utils/theme';
+import theme, { colors } from '../../../utils/theme';
 import vh from '../../../utils/units/vh';
 import vw from '../../../utils/units/vw';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.primaryColor,
     // alignItems: 'center',
+  },
+  headingContainer: {
+    paddingHorizontal: 7 * vw,
+    paddingTop:10 * vh,
+    paddingBottom:2 * vh,
   },
   contentContainer: {
     alignItems: 'center',
+    backgroundColor: colors.white,
+    // marginTop: 26 * vh,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    flex: 1,
   },
   redText: {
     fontSize: 2 * vh,
@@ -37,13 +48,13 @@ const styles = StyleSheet.create({
   },
   forgotPassText: {
     fontSize: 2 * vh,
-    color: theme.colors.red,
+    color: theme.colors.primaryColor,
     // textAlign: 'right',
     // backgroundColor: 'red',
   },
   blueText: {
     fontSize: 2 * vh,
-    color: theme.colors.red,
+    color: theme.colors.primaryColor,
   },
   forgotPasswordContainer: {
     width: vw * 80,
@@ -55,7 +66,7 @@ const styles = StyleSheet.create({
   text: {
     textAlign: 'center',
     fontSize: 2.2 * vh,
-    color: theme.colors.white,
+    color: theme.colors.black,
   },
   row: {
     flexDirection: 'row',

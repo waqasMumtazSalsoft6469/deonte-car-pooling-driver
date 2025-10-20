@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
     // height: 5 * vh,
   },
   title: {
-    color: theme.colors.white, //black
+    color: theme.colors.black, //black
     fontSize: vw * 4,
     marginLeft: vw * 4,
     marginBottom: vh * 1,

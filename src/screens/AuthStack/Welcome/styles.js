@@ -1,11 +1,12 @@
-import {StyleSheet} from 'react-native';
-import theme from '../../../utils/theme';
+import { StyleSheet } from 'react-native';
+import theme, { colors } from '../../../utils/theme';
 import vh from '../../../utils/units/vh';
 import vw from '../../../utils/units/vw';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.white,
     // alignItems: 'center',
     // justifyContent: 'flex-end',
     // paddingBottom: vh * 8,
@@ -29,7 +30,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 2.2 * vh,
     marginBottom: 4 * vh,
-    marginTop : vh*1
+    marginTop: vh * 1
   },
   bottomText: {
     color: theme.colors.white,

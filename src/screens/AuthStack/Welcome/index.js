@@ -6,8 +6,9 @@ import {
   Platform,
   Text,
   TouchableOpacity,
+  View,
 } from 'react-native';
-import {images} from '../../../assets';
+import { images } from '../../../assets';
 import styles from './styles';
 import TextBold from '../../../components/Wrappers/Text/GilroyBold';
 import TextLight from '../../../components/Wrappers/Text/GilroyLight';
@@ -28,9 +29,9 @@ const Welcome = props => {
   // };
 
   return (
-    <ImageBackground style={styles.container} source={images.welcomeImage}>
+    // <ImageBackground style={styles.container} source={images.welcomeImage}>
+    <View style={styles.container}>
       <Image source={images.logo} style={styles.logo} />
-
       <LinearGradient
         style={styles.gradiantStyles}
         colors={[
@@ -44,7 +45,7 @@ const Welcome = props => {
         ]}>
         <LemonBold style={styles.headingText}>More Than Just A Ride</LemonBold>
         <LemonBold
-          style={[styles.headingText, {fontSize: vh * 2, color: '#b80202'}]}>
+          style={[styles.headingText, { fontSize: vh * 2, color: '#b80202' }]}>
           It's An Experience
         </LemonBold>
 
@@ -67,7 +68,8 @@ const Welcome = props => {
           </Text>
         </TextBold>
       </TouchableOpacity> */}
-    </ImageBackground>
+    </View>
+    // </ImageBackground>
   );
 };
 
