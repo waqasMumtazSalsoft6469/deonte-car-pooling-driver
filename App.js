@@ -8,8 +8,8 @@ import {
   Text,
   Alert,
 } from 'react-native';
-import {set, withDecay} from 'react-native-reanimated';
-import messaging from '@react-native-firebase/messaging';
+// import {set, withDecay} from 'react-native-reanimated';
+// Messaging guarded to avoid init crash when Firebase app isn't configured
 // import Toast from 'react-native-toast';
 import SplashScreen from 'react-native-splash-screen';
 // import AnimatedSplash from 'react-native-animated-splash';
@@ -21,14 +21,23 @@ const App = () => {
     setTimeout(() => {
       SplashScreen.hide();
     }, 2000);
-    const unsubscribe = messaging().onMessage(async remoteMessage => {
-      // Alert.alert('A new FCM message arrived!', JSON.stringify(remoteMessage));
-      console.log('new FCM message arriv', remoteMessage?.notification?.body);
+    let unsubscribe = () => {};
+    (async () => {
+      try {
+        const messaging = (await import('@react-native-firebase/messaging')).default;
+        unsubscribe = messaging().onMessage(async remoteMessage => {
+          console.log('new FCM message arriv', remoteMessage?.notification?.body);
+        });
+      } catch (e) {
+        if (__DEV__) {
+          console.warn('FCM disabled: Firebase not initialized');
+        }
+      }
+    })();
 
-      // Toast.show(remoteMessage?.notification?.body);
-    });
-
-    return unsubscribe;
+    return () => {
+      try { unsubscribe && unsubscribe(); } catch {}
+    };
   });
 
 

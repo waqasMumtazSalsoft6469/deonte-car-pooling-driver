@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1067715358675",
+    "project_id": "deonte-car-pooling-driver",
+    "storage_bucket": "deonte-car-pooling-driver.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1067715358675:android:58955eafaba0ff2b5ec926",
+        "android_client_info": {
+          "package_name": "com.deonteCarPoolingDriver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBGr_bakqYv64F0_mKH-p_uupQtvI974DY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
