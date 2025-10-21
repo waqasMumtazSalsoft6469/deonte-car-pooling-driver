@@ -11,6 +11,7 @@ import {
 // import {set, withDecay} from 'react-native-reanimated';
 // Messaging guarded to avoid init crash when Firebase app isn't configured
 // import Toast from 'react-native-toast';
+import Toast from 'react-native-toast-message';
 import SplashScreen from 'react-native-splash-screen';
 // import AnimatedSplash from 'react-native-animated-splash';
 
@@ -50,6 +51,126 @@ const App = () => {
         backgroundColor="transparent" //black
       />
       <Navigation />
+      <Toast 
+        config={{
+          success: (props) => (
+            <View style={{
+              height: 60,
+              width: '90%',
+              backgroundColor: '#000000',
+              borderRadius: 10,
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: '500',
+                flex: 1,
+              }}>
+                {props.text1}
+              </Text>
+            </View>
+          ),
+          error: (props) => (
+            <View style={{
+              height: 60,
+              width: '90%',
+              backgroundColor: '#000000',
+              borderRadius: 10,
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: '500',
+                flex: 1,
+              }}>
+                {props.text1}
+              </Text>
+            </View>
+          ),
+          info: (props) => (
+            <View style={{
+              height: 60,
+              width: '90%',
+              backgroundColor: '#000000',
+              borderRadius: 10,
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: '500',
+                flex: 1,
+              }}>
+                {props.text1}
+              </Text>
+            </View>
+          ),
+          warning: (props) => (
+            <View style={{
+              height: 60,
+              width: '90%',
+              backgroundColor: '#000000',
+              borderRadius: 10,
+              paddingHorizontal: 15,
+              paddingVertical: 10,
+              flexDirection: 'row',
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: {
+                width: 0,
+                height: 2,
+              },
+              shadowOpacity: 0.25,
+              shadowRadius: 3.84,
+              elevation: 5,
+            }}>
+              <Text style={{
+                color: '#FFFFFF',
+                fontSize: 14,
+                fontWeight: '500',
+                flex: 1,
+              }}>
+                {props.text1}
+              </Text>
+            </View>
+          ),
+        }}
+      />
     </View>
   );
 };

@@ -1,0 +1,42 @@
+{
+  "fullName": "John Doe",
+  "email": "john.doe@example.com",
+  "phoneNumber": "+1-555-123-4567",
+  "gender": "Male",
+  "dateOfBirth": "12/25/1990",
+  "drivingLicenseNo": "DL123456789",
+  "licenseExpireDate": "12/25/2025",
+  "bankTitle": "Chase Bank",
+  "accountNumber": "1234567890",
+  "routingNumber": "021000021",
+  "profilePicture": {
+    "uri": "file:///path/to/profile_picture.jpg",
+    "type": "image/jpeg",
+    "name": "profile_picture.jpg"
+  },
+  "drivingLicenseFront": {
+    "uri": "file:///path/to/license_front.jpg",
+    "type": "image/jpeg",
+    "name": "license_front.jpg"
+  },
+  "drivingLicenseBack": {
+    "uri": "file:///path/to/license_back.jpg",
+    "type": "image/jpeg",
+    "name": "license_back.jpg"
+  },
+  "vehicleInsurance": {
+    "uri": "file:///path/to/insurance.jpg",
+    "type": "image/jpeg",
+    "name": "insurance.jpg"
+  },
+  "licensePlate": {
+    "uri": "file:///path/to/license_plate.jpg",
+    "type": "image/jpeg",
+    "name": "license_plate.jpg"
+  },
+  "tlcNo": {
+    "uri": "file:///path/to/tlc.jpg",
+    "type": "image/jpeg",
+    "name": "tlc.jpg"
+  }
+}

@@ -38,7 +38,7 @@ const AddSongScreen = props => {
       return showToast('Enter Song Duration');
     }
     if (RiderDetail?._id === null) {
-      return Toast.show('The ride have no drivers!');
+      return showToast('The ride have no drivers!');
     }
     const body = {
       songname: songName,

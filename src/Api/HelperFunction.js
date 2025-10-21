@@ -1,5 +1,5 @@
 import {store} from '../Redux/store';
-// import Toast from 'react-native-toast';
+import Toast from 'react-native-toast-message';
 import Geolocation from '@react-native-community/geolocation';
 import {
   check,
@@ -13,10 +13,32 @@ import {Linking} from 'react-native';
 
 export const APIKEY = 'AIzaSyBFRqlCOvRtuKLpvDSP5qLkiyCr5dKx7jI';
 
-export const showToast = msg => {
+// Global Toast Functions
+export const showToast = (msg, type = 'error') => {
   setTimeout(() => {
-    // Toast.show(getMessage(msg));
+    Toast.show({
+      type: type,
+      text1: getMessage(msg),
+      position: 'top',
+      visibilityTime: 3000,
+    });
   }, 500);
+};
+
+export const showSuccessToast = (msg) => {
+  showToast(msg, 'success');
+};
+
+export const showErrorToast = (msg) => {
+  showToast(msg, 'error');
+};
+
+export const showInfoToast = (msg) => {
+  showToast(msg, 'info');
+};
+
+export const showWarningToast = (msg) => {
+  showToast(msg, 'warning');
 };
 
 export const handleResponse = ({response, jsonResponse}) => {
@@ -285,7 +307,7 @@ export const checkCameraPermission = async () => {
   } catch (error) {
     // show toast
     console.log('here itttt ?');
-    // showToast(error);
+    showToast(error);
     throw new Error(error);
   }
 };

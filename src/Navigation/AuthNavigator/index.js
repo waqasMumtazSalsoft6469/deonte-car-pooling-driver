@@ -4,6 +4,7 @@ import Login from '../../screens/AuthStack/Login';
 import Welcome from '../../screens/AuthStack/Welcome';
 import Signup from '../../screens/AuthStack/Signup';
 import ForgotPassword from '../../screens/AuthStack/ForgotPassword';
+import CreateProfile from '../../screens/AuthStack/CreateProfile';
 
 const AuthStack = createStackNavigator();
 
@@ -14,6 +15,7 @@ function AuthNavigator() {
             <AuthStack.Screen name="Login" component={Login} />
             <AuthStack.Screen name="ForgotPassword" component={ForgotPassword} />
             <AuthStack.Screen name="Signup" component={Signup} />
+            <AuthStack.Screen name="CreateProfile" component={CreateProfile} />
         </AuthStack.Navigator>
     );
 }

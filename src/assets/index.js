@@ -67,6 +67,8 @@ export const icons = {
   myVehicle: require('./icons/myVehicle.png'),
   walletDrawer: require('./icons/walletContainer.png'),
   phoneDrawer: require('./icons/phoneDrawer.png'),
+  uploadIcons: require('./icons/upload-icon.png'),
+  cameraIcon: require('./icons/camera.png'),
 };
 
 export const images = {

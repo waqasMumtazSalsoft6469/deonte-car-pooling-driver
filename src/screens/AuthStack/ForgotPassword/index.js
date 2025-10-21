@@ -26,7 +26,6 @@ import { validateEmail } from '../../../utils/units/validation';
 import { useDispatch } from 'react-redux';
 import { showToast } from '../../../Api/HelperFunction';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
-// import {show} from 'react-native-toast';
 
 const ForgotPass = props => {
   const dispatch = useDispatch();

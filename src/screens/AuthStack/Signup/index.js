@@ -18,7 +18,7 @@ import { validateEmail } from '../../../utils/units/validation';
 import { useDispatch } from 'react-redux';
 import GilroyBold from '../../../components/Wrappers/Text/GilroyBold';
 import GilroyRegular from '../../../components/Wrappers/Text/GilroyRegular';
-import { NativeDocumentPicker } from '@react-native-documents/picker/lib/typescript/spec/NativeDocumentPicker';
+import { pick, pickDocument } from '@react-native-documents/picker';
 const Signup = ({ navigation }) => {
   const dispatch = useDispatch();
 
@@ -59,9 +59,9 @@ const Signup = ({ navigation }) => {
     if (password == '') {
       return showToast('Enter Password');
     }
-    if (license == false) {
-      return showToast(' Please Upload your license ');
-    }
+    // if (license == false) {
+    //   return showToast(' Please Upload your license ');
+    // }
     if (password != confirmPassword) {
       return showToast('Password Not Match');
     }
@@ -77,15 +77,17 @@ const Signup = ({ navigation }) => {
       email: email.trim().toLowerCase(),
       password: password,
       phone: phone,
-      user_image: userImage,
+      // user_image: userImage,
       confirmpassword: confirmPassword,
     };
     try {
+
+      console.log('Body ====>', body);
       const response = await dispatch(register(body));
       console.log('Response ======>', response);
       if (response) {
         showToast('You have Successfully Registered');
-        navigation.navigate('Login');
+        navigation.navigate('CreateProfile');
       }
 
       setFirstName();
@@ -94,7 +96,7 @@ const Signup = ({ navigation }) => {
       setPhoneNumber();
       setPassword();
       setConfirmPassword();
-      setLicense(false);
+      // setLicense(false);
       // if (response?.message) {
       //   setStep(2);
       //   console.log('Step ==>', step);
@@ -105,12 +107,12 @@ const Signup = ({ navigation }) => {
     }
   };
 
-  const ImagePick = () => {
-    NativeDocumentPicker.pick().then(file => {
-      console.log(file);
-      setLicense(file);
-    });
-  };
+  // const ImagePick = () => {
+  //   pick().then(file => {
+  //     console.log(file);
+  //     setLicense(file);
+  //   });
+  // };
   return (
     <View style={styles.container} >
       <View style={styles.headingContainer}>
@@ -172,7 +174,7 @@ const Signup = ({ navigation }) => {
             onChangeText={setConfirmPassword}
             secureTextEntry={true}
           />
-          <Ripple style={[styles.uploadBox]} onPress={ImagePick}>
+          {/* <Ripple style={[styles.uploadBox]} onPress={ImagePick}>
             {license?.length > 0 ? (
               <Image source={license[0]} style={styles.image} />
             ) : (
@@ -184,7 +186,7 @@ const Signup = ({ navigation }) => {
                 </GilroyRegular>
               </View>
             )}
-          </Ripple>
+          </Ripple> */}
 
           {/* <ImageUpload
           title={'Upload License'}
@@ -201,6 +203,11 @@ const Signup = ({ navigation }) => {
         </Ripple> */}
           <Button
             style={styles.buttonStyle}
+            text="CreateProfile"
+            onPress={() => navigation.navigate('CreateProfile')}
+          />
+          <Button
+            style={styles.buttonStyle}
             text="SignUp"
             onPress={handleSignUp}
           />
@@ -210,7 +217,7 @@ const Signup = ({ navigation }) => {
               <TextBold style={[styles.text, styles.blueText]}> Sign In</TextBold>
             </Ripple>
           </View>
-     
+
         </ScrollView>
       </KeyboardAwareScrollView>
     </View>
