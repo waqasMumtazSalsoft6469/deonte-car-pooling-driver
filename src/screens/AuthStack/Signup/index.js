@@ -18,6 +18,7 @@ import { validateEmail } from '../../../utils/units/validation';
 import { useDispatch } from 'react-redux';
 import GilroyBold from '../../../components/Wrappers/Text/GilroyBold';
 import GilroyRegular from '../../../components/Wrappers/Text/GilroyRegular';
+import { NativeDocumentPicker } from '@react-native-documents/picker/lib/typescript/spec/NativeDocumentPicker';
 const Signup = ({ navigation }) => {
   const dispatch = useDispatch();
 
@@ -105,10 +106,10 @@ const Signup = ({ navigation }) => {
   };
 
   const ImagePick = () => {
-    // DocumentPicker.pick().then(file => {
-    //   console.log(file);
-    //   setLicense(file);
-    // });
+    NativeDocumentPicker.pick().then(file => {
+      console.log(file);
+      setLicense(file);
+    });
   };
   return (
     <View style={styles.container} >
