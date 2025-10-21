@@ -1,14 +1,21 @@
-import {StyleSheet} from 'react-native';
-import theme from '../../../utils/theme';
+import { StyleSheet } from 'react-native';
+import theme, { colors } from '../../../utils/theme';
 import vh from '../../../utils/units/vh';
 import vw from '../../../utils/units/vw';
+import { Fonts } from '../../../assets';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // alignItems: 'center',
-    paddingHorizontal: 7 * vw,
-    // backgroundColor: theme.colors.red,
+    backgroundColor: colors.primaryColor,
+  },
+  contentContainer: {
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    // marginTop: 26 * vh,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    flex: 1,
   },
   redText: {
     fontSize: 2 * vh,
@@ -25,6 +32,7 @@ const styles = StyleSheet.create({
   grayText: {
     color: theme.colors.lightWhite,
     marginBottom: 3 * vh,
+    fontFamily: Fonts.RB
   },
   carImage: {
     height: 12 * vh,

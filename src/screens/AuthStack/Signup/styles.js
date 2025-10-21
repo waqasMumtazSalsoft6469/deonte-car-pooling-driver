@@ -1,18 +1,25 @@
-import {StyleSheet} from 'react-native';
-import theme from '../../../utils/theme';
+import { StyleSheet } from 'react-native';
+import theme, { colors } from '../../../utils/theme';
 import vh from '../../../utils/units/vh';
 import vw from '../../../utils/units/vw';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // alignItems: 'center',
-    paddingHorizontal: 7 * vw,
-    // backgroundColor: theme.colors.red,
-    paddingTop: 10 * vh,
+    backgroundColor: colors.primaryColor,
   },
   contentContainer: {
-    paddingBottom: 5 * vh,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    // marginTop: 26 * vh,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    flex: 1,
+  },
+  headingContainer: {
+    paddingHorizontal: 7 * vw,
+    paddingTop: 10 * vh,
+    paddingBottom: 2 * vh,
   },
   headingText: {
     fontSize: 4.5 * vh,
@@ -26,7 +33,7 @@ const styles = StyleSheet.create({
 
   blueText: {
     fontSize: 2 * vh,
-    color: theme.colors.red,
+    color: theme.colors.primaryColor,
   },
   buttonStyle: {
     marginVertical: 5 * vh,
@@ -34,7 +41,7 @@ const styles = StyleSheet.create({
   text: {
     textAlign: 'center',
     fontSize: 2.2 * vh,
-    color: theme.colors.white,
+    color: theme.colors.black,
   },
   text2: {
     textAlign: 'center',
@@ -50,6 +57,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginBottom:4 * vh,
   },
   uploadBox: {
     height: 15 * vh,

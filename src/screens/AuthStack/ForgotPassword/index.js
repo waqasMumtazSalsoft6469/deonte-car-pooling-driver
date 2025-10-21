@@ -1,4 +1,4 @@
-import React, {useState, useRef} from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,9 @@ import {
   ImageBackground,
   LayoutAnimation,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
-import {images} from '../../../assets';
+import { images } from '../../../assets';
 import TextInput from '../../../components/TextInput';
 import styles from './styles';
 import TextBold from '../../../components/Wrappers/Text/GilroyBold';
@@ -20,10 +21,11 @@ import {
   setPasswordAction,
   verifyCode,
 } from '../../../Redux/Actions/auth';
-import {validateEmail} from '../../../utils/units/validation';
+import { validateEmail } from '../../../utils/units/validation';
 
-import {useDispatch} from 'react-redux';
-import {showToast} from '../../../Api/HelperFunction';
+import { useDispatch } from 'react-redux';
+import { showToast } from '../../../Api/HelperFunction';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 // import {show} from 'react-native-toast';
 
 const ForgotPass = props => {
@@ -84,7 +86,7 @@ const ForgotPass = props => {
 
       try {
         const response = await dispatch(resetPassword(body));
-        if(response){
+        if (response) {
           showToast(response?.message)
         }
         console.log("Response from forget Pass= ====>", response);
@@ -151,7 +153,7 @@ const ForgotPass = props => {
     switch (step) {
       case steps.step1:
         return (
-          <View style={{alignItems: 'center'}}>
+          <View style={{ alignItems: 'center' }}>
             <TextMedium style={styles.grayText}>
               Please Enter Your Email Address to Continue
             </TextMedium>
@@ -181,7 +183,7 @@ const ForgotPass = props => {
         );
       case steps.step2:
         return (
-          <View style={{alignItems: 'center'}}>
+          <View style={{ alignItems: 'center' }}>
             <TextMedium style={styles.grayText}>
               Please Enter Code Sent To Your Email
             </TextMedium>
@@ -199,7 +201,7 @@ const ForgotPass = props => {
                   </TouchableOpacity>
                 </View>
               )}
-              // secureTextEntry
+            // secureTextEntry
             />
             <Button
               style={styles.buttonStyle}
@@ -222,14 +224,14 @@ const ForgotPass = props => {
         );
       case steps.step3:
         return (
-          <View style={{alignItems: 'center'}}>
+          <View style={{ alignItems: 'center' }}>
             <TextInput
               title="New Password*"
               placeholder="Enter New Password"
               onChangeText={setNewPassword}
-          autoFocus={true}
-          onSubmitEditing={() => confirmPasswordRef.current.focus()}
-          secureTextEntry={true}
+              autoFocus={true}
+              onSubmitEditing={() => confirmPasswordRef.current.focus()}
+              secureTextEntry={true}
 
 
             />
@@ -238,7 +240,7 @@ const ForgotPass = props => {
               placeholder="Enter Confirm Password"
               onChangeText={setCnfrmPassword}
               reference={confirmPasswordRef}
-          secureTextEntry={true}
+              secureTextEntry={true}
 
 
             />
@@ -266,13 +268,26 @@ const ForgotPass = props => {
     }
   };
   return (
-    <ImageBackground style={styles.container} source={images.backgroundImage}>
-      <View style={{alignItems: 'center'}}>
-        <Image source={images.logo} style={styles.carImage} />
-        <TextBold style={styles.headingText}>Password Recovery</TextBold>
+    <View style={styles.container}>
+      {/* <View style={{alignItems: 'center'}}> */}
+      {/* <Image source={images.logo} style={styles.carImage} /> */}
+      {/* <TextBold style={styles.headingText}>Password Recovery</TextBold> */}
+      {/* </View> */}
+      <View style={styles.headingContainer}>
+        <TextBold style={styles.headingText}>Forgot Password</TextBold>
+        <TextMedium style={styles.grayText}>
+          Enter Your Email Address to Continue
+        </TextMedium>
       </View>
-      {renderSteps()}
-    </ImageBackground>
+
+      <KeyboardAwareScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          {renderSteps()}
+        </ScrollView>
+      </KeyboardAwareScrollView>
+    </View>
   );
 };
 
