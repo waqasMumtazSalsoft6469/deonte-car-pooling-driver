@@ -17,6 +17,11 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     flex: 1,
   },
+  headingContainer: {
+    paddingHorizontal: 7 * vw,
+    paddingTop:10 * vh,
+    paddingBottom:2 * vh,
+  },
   redText: {
     fontSize: 2 * vh,
     lineHeight: 2.5 * vh,

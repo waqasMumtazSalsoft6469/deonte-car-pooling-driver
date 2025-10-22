@@ -1,27 +1,23 @@
-import React, {useState, useRef, useEffect} from 'react';
-import {View, Text, Image, TouchableOpacity} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Image, View } from 'react-native';
 import MontserratMedium from '../Wrappers/Text/GilroyMedium';
 
-import styles from './styles';
-import Animated, {
-  Extrapolate,
-  interpolate,
-  useAnimatedStyle,
+import { useDrawerProgress, useDrawerStatus } from '@react-navigation/drawer';
+import { useNavigation } from '@react-navigation/native';
+import {
   useSharedValue,
   withTiming,
 } from 'react-native-reanimated';
-import {useDrawerProgress, useDrawerStatus} from '@react-navigation/drawer';
-import {useNavigation} from '@react-navigation/native';
-import vh from '../../utils/units/vh';
-import {icons, images} from '../../assets';
-import GilroyRegular from '../Wrappers/Text/GilroyRegular';
-import GilroyMedium from '../Wrappers/Text/GilroyMedium';
+import { useDispatch, useSelector } from 'react-redux';
+import { image_url } from '../../Api/configs';
+import { icons, images } from '../../assets';
 import GeneralModal from '../../popups/GeneralModal';
+import { logout } from '../../Redux/Actions/auth';
+import vh from '../../utils/units/vh';
 import Ripple from '../Wrappers/Ripple';
-import {useDispatch, useSelector} from 'react-redux';
-import {logout} from '../../Redux/Actions/auth';
-import {image_url} from '../../Api/configs';
-import vw from '../../utils/units/vw';
+import GilroyMedium from '../Wrappers/Text/GilroyMedium';
+import GilroyRegular from '../Wrappers/Text/GilroyRegular';
+import styles from './styles';
 const DrawerContent = props => {
   const userDetail = useSelector(state => state.UserReducer.userData);
 
@@ -128,7 +124,7 @@ const DrawerContent = props => {
             style={styles.image}
             source={
               userDetail?.userImage
-                ? {uri: image_url + userDetail?.userImage}
+                ? { uri: image_url + userDetail?.userImage }
                 : images.driverImage
             }
           />
@@ -144,9 +140,9 @@ const DrawerContent = props => {
           style={styles.label}>
           {/* <Animated.View style={[styles.label, animatedStyles]}> */}
 
-          <Image source={icons.bookRide} style={styles.iconbookaride} />
+          <Image source={icons.drawerGarageHome} style={styles.iconbookaride} />
           <MontserratMedium style={styles.drawerText}>
-            Book A Ride
+            Home
           </MontserratMedium>
 
           {/* </Animated.View> */}
@@ -156,32 +152,25 @@ const DrawerContent = props => {
         <Ripple
           style={styles.label}
           onPress={() => navigation.navigate('ProfileNavigator')}>
-          <Image source={icons.profile} style={styles.icon} />
-          <MontserratMedium style={styles.drawerText}>Profile</MontserratMedium>
+          <Image source={icons.drawerAssignmentInd} style={styles.icon} />
+          <MontserratMedium style={styles.drawerText}>My Profile</MontserratMedium>
         </Ripple>
         {/* </Animated.View> */}
         <Ripple
           style={styles.label}
           onPress={() => navigation.navigate('MyVehicleNavigator')}>
-          <Image source={icons.myVehicle} style={styles.icon} />
+          <Image source={icons.drawerDirectionsCar} style={styles.icon} />
           <MontserratMedium style={styles.drawerText}>
-            My Vehicles
+            My Car
           </MontserratMedium>
         </Ripple>
-        <Ripple
-          style={styles.label}
-          onPress={() => navigation.navigate('PlayListNavigator')}>
-          <Image source={icons.playlist} style={styles.icon} />
-          <MontserratMedium style={styles.drawerText}>
-            My Playlist
-          </MontserratMedium>
-        </Ripple>
+
         <Ripple
           style={styles.label}
           onPress={() => navigation.navigate('RatingNavigator')}>
-          <Image source={icons.ratingContainer} style={styles.icon} />
+          <Image source={icons.drawerContract} style={styles.icon} />
           <MontserratMedium style={styles.drawerText}>
-            Ratings and Reviews{' '}
+            Ratings and Reviews
           </MontserratMedium>
         </Ripple>
         <Ripple
@@ -189,9 +178,9 @@ const DrawerContent = props => {
           onPress={() => navigation.navigate('MyEarningsNavigator')}>
           {/* <Animated.View style={[styles.label, animatedStyles3]}> */}
 
-          <Image source={icons.walletDrawer} style={styles.icon} />
+          <Image source={icons.drawerDialogs} style={styles.icon} />
           <MontserratMedium style={styles.drawerText}>
-            My Earnings
+            Payment Logs
           </MontserratMedium>
         </Ripple>
         {/* </Animated.View> */}
@@ -209,25 +198,25 @@ const DrawerContent = props => {
         <Ripple
           style={styles.label}
           onPress={() => navigation.navigate('MyRidesRequestNavigator')}>
-          <Image source={icons.bookRide} style={styles.iconbookaride} />
+          <Image source={icons.drawerDirectionsCar} style={styles.iconbookaride} />
           <MontserratMedium style={styles.drawerText}>
             Rides Request
           </MontserratMedium>
         </Ripple>
         {/* </Animated.View> */}
         {/* <Animated.View style={[animatedStyles2]}> */}
-        <Ripple
+        {/* <Ripple
           style={styles.label}
           onPress={() => navigation.navigate('ContactUsNavigator')}>
           <Image source={icons.phoneDrawer} style={styles.icon} />
           <MontserratMedium style={styles.drawerText}>
             Contact Us
           </MontserratMedium>
-        </Ripple>
+        </Ripple> */}
         {/* </Animated.View> */}
         {/* <Animated.View style={[animatedStyles2]}> */}
         <Ripple style={styles.Logout} onPress={() => modalRef.current.show()}>
-          <Image source={icons.logout} style={styles.icon} />
+          <Image source={icons.drawerExitToApp} style={styles.icon} />
           <GilroyRegular style={styles.drawerText}>Logout</GilroyRegular>
         </Ripple>
         {/* </Animated.View> */}
@@ -242,16 +231,10 @@ const DrawerContent = props => {
           icon={images.logout}
           text1={'Logout'}
           text2={'Are you sure you want to logout ?'}
-          text2Style={{height: null}}
-          // textLink={'Contact Here'}
-          // onHide={() => props.navigation.navigate('Drawer')}
-          // textLinkStyle={{}}
+          text2Style={{ height: null }}
           button1Text={'Yes'}
           onButton1Press={() => {
             dispatch(logout());
-            setTimeout(() => {
-              props.navigation.navigate('AuthNavigator');
-            }, 2000);
           }}
           button2Text={'No'}
         />

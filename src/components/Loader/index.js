@@ -2,16 +2,7 @@ import React, {Component} from 'react';
 import {View, ActivityIndicator, Modal} from 'react-native';
 import {connect} from 'react-redux';
 import {BlurView} from '@react-native-community/blur';
-import {
-  BallIndicator,
-  BarIndicator,
-  DotIndicator,
-  MaterialIndicator,
-  PacmanIndicator,
-  PulseIndicator,
-  SkypeIndicator,
-  UIActivityIndicator,
-} from 'react-native-indicators';
+
 import styles from './styles';
 import theme, {colors} from '../../utils/theme';
 
@@ -28,7 +19,7 @@ class Loader extends Component {
               reducedTransparencyFallbackColor="white"
             />
           </View>
-          {/* <UIActivityIndicator color={theme.colors.red} /> */}
+          <ActivityIndicator size="large" color={colors.primaryColor} />
         </View>
       </Modal>
     );

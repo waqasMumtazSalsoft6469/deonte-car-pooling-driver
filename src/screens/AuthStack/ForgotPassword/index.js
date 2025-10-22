@@ -36,6 +36,7 @@ const ForgotPass = props => {
   const [cnfrmPassword, setCnfrmPassword] = useState('');
   const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
+  console.log("step of ForgotPassword ===> ", step);
   const steps = {
     step1: 1,
     step2: 2,
@@ -275,7 +276,9 @@ const ForgotPass = props => {
       <View style={styles.headingContainer}>
         <TextBold style={styles.headingText}>Forgot Password</TextBold>
         <TextMedium style={styles.grayText}>
-          Enter Your Email Address to Continue
+          {step === 1 ? " Enter Your Email Address to Continue" :
+            step === 2 ? " Please Enter Code Sent To Your Email" :
+              "Please Enter New Password"}
         </TextMedium>
       </View>
 

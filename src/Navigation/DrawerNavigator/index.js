@@ -24,7 +24,6 @@ export default function DrawerNavigator(props) {
           // ...getOptions(props),
           headerShown: false,
           // headerStyle: {
-          //   backgroundColor: 'red',
           //   height: 15 * vh,
           // },
           drawerType: 'slide',

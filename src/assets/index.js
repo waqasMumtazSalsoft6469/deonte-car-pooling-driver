@@ -69,6 +69,18 @@ export const icons = {
   phoneDrawer: require('./icons/phoneDrawer.png'),
   uploadIcons: require('./icons/upload-icon.png'),
   cameraIcon: require('./icons/camera.png'),
+
+
+  // Drawer Icons
+  drawerAssignmentInd: require('./drawerIcons/assignment_ind.png'),
+  drawerAssuredWorkload: require('./drawerIcons/assured_workload.png'),
+  drawerBackupTable: require('./drawerIcons/backup_table.png'),
+  drawerContract: require('./drawerIcons/contract.png'),
+  drawerDialogs: require('./drawerIcons/dialogs.png'),
+  drawerDirectionsCar: require('./drawerIcons/directions_car.png'),
+  drawerExitToApp: require('./drawerIcons/exit_to_app.png'),
+  drawerGarageHome: require('./drawerIcons/garage_home.png'),
+  drawerYourTrips: require('./drawerIcons/your_trips.png'),
 };
 
 export const images = {
