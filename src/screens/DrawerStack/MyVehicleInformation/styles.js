@@ -1,5 +1,5 @@
-import {StyleSheet} from 'react-native';
-import theme, {appShadow} from '../../../utils/theme';
+import { StyleSheet } from 'react-native';
+import theme, { appShadow } from '../../../utils/theme';
 import vh from '../../../utils/units/vh';
 import vw from '../../../utils/units/vw';
 
@@ -76,7 +76,7 @@ export const styles = StyleSheet.create({
     // color: theme.colors.labelColor
     color: theme.colors.black,
     letterSpacing: vw * 0.3,
-    
+
   },
   myVehicle: {
     height: vh * 20,
@@ -99,4 +99,14 @@ export const styles = StyleSheet.create({
     width: vw * 80,
     marginBottom: vh * 0.05,
   },
+  registerButtonContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  textStyle: {
+    fontSize: vh * 1.9,
+    color: theme.colors.placeholder,
+    marginBottom: vh * 1,
+  }
 });

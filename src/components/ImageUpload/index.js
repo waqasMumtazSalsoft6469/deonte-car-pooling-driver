@@ -1,12 +1,9 @@
 import React from 'react';
-import {useState} from 'react';
-import {View, Image} from 'react-native';
-import {image_url} from '../../Api/configs';
-import {icons} from '../../assets';
+import { Image, View } from 'react-native';
+import { image_url } from '../../Api/configs';
+import { icons } from '../../assets';
 import Ripple from '../Wrappers/Ripple';
-import GilroyBold from '../Wrappers/Text/GilroyBold';
-import GilroyRegular from '../Wrappers/Text/GilroyRegular';
-import {styles} from './styles';
+import { styles } from './styles';
 
 const ImageUpload = props => {
   return (

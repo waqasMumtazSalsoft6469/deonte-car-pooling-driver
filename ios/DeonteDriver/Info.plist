@@ -26,52 +26,51 @@
 	<true/>
 	<key>NSAppTransportSecurity</key>
 	<dict>
-	  <!-- Do not change NSAllowsArbitraryLoads to true, or you will risk app rejection! -->
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>This app needs access to location to provide location-based services for drivers.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>This app needs access to location to provide location-based services for drivers, even when the app is in the background.</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>This app needs access to location to provide location-based services for drivers, even when the app is in the background.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>This app needs access to camera to take photos for driver verification.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>This app needs access to photo library to select images for driver verification.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to microphone for voice features.</string>
-	<key>NSContactsUsageDescription</key>
-	<string>This app needs access to contacts to help you find and connect with other users.</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>This app needs access to calendar to manage driver schedules.</string>
-	<key>NSRemindersUsageDescription</key>
-	<string>This app needs access to reminders to manage driver tasks.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>This app needs access to Apple Music for playlist features.</string>
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>This app needs access to Bluetooth for device connectivity.</string>
 	<key>NSBluetoothPeripheralUsageDescription</key>
 	<string>This app needs access to Bluetooth for device connectivity.</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>This app needs access to speech recognition for voice commands.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>This app needs access to calendar to manage driver schedules.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to camera to take photos for driver verification.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>This app needs access to contacts to help you find and connect with other users.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>This app uses Face ID for secure authentication.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>This app needs access to motion data for activity tracking.</string>
-	<key>NSHealthUpdateUsageDescription</key>
-	<string>This app needs access to health data for driver wellness tracking.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>This app needs access to health data for driver wellness tracking.</string>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>This app needs access to Apple Music for playlist features.</string>
-	<key>NSSiriUsageDescription</key>
-	<string>This app needs access to Siri for voice commands.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>This app needs access to health data for driver wellness tracking.</string>
 	<key>NSHomeKitUsageDescription</key>
 	<string>This app needs access to HomeKit for smart home integration.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>This app needs access to local network for device discovery.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to location to provide location-based services for drivers, even when the app is in the background.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to location to provide location-based services for drivers, even when the app is in the background.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to location to provide location-based services for drivers.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app needs access to microphone for voice features.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>This app needs access to motion data for activity tracking.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to photo library to select images for driver verification.</string>
+	<key>NSRemindersUsageDescription</key>
+	<string>This app needs access to reminders to manage driver tasks.</string>
+	<key>NSSiriUsageDescription</key>
+	<string>This app needs access to Siri for voice commands.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>This app needs access to speech recognition for voice commands.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
@@ -86,5 +85,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
+		<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

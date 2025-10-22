@@ -1,5 +1,5 @@
 import React from 'react';
-import { Text, ImageBackground, Image } from 'react-native';
+import { Text, ImageBackground, Image, View } from 'react-native';
 import { images } from '../../../assets';
 import Button from '../../../components/Button';
 import GilroyBold from '../../../components/Wrappers/Text/GilroyBold';
@@ -7,7 +7,7 @@ import { styles } from './styles';
 
 const MyVehicle = (props) => {
     return (
-        <ImageBackground style={styles.container} source={images.backgroundImage}>
+        <View style={styles.container} >
             <Image source={images.myVehicle} style={styles.carsImage} />
             <GilroyBold style={styles.paraText}>Please register your vehicle in order to continue{"\n"}
                 as a rider.</GilroyBold>
@@ -18,7 +18,7 @@ const MyVehicle = (props) => {
                 onPress={() => props.navigation.navigate("RegisterVehicle")}
             />
 
-        </ImageBackground>
+        </View>
     )
 }
 export default MyVehicle

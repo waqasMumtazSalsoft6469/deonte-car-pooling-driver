@@ -15,7 +15,6 @@ const styles = StyleSheet.create({
     zIndex: 1000,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'red',
   },
   blurBackground: {
     height: 100 * vh,

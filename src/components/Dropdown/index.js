@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, TouchableOpacity, Animated, Dimensions, Text} from 'react-native';
-import {WheelPicker} from '../../libs/react-native-wheel-picker-android';
+// import {WheelPicker} from '../../libs/react-native-wheel-picker-android';
 import {styles} from './styles';
 
 export default class DropDown extends React.Component {
@@ -121,11 +121,12 @@ export default class DropDown extends React.Component {
   renderWheel = () => {
     if (this.state.dataToShow.length > 0) {
       return (
-        <WheelPicker
-          selectedItem={this.state.selectedItem}
-          data={this.state.dataToShow}
-          onItemSelected={this.onItemSelected}
-        />
+        <></>
+        // <WheelPicker
+        //   selectedItem={this.state.selectedItem}
+        //   data={this.state.dataToShow}
+        //   onItemSelected={this.onItemSelected}
+        // />
       );
     } else {
       return null;

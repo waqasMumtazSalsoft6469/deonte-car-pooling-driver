@@ -1,8 +1,8 @@
-import React, {useState, useRef, useLayoutEffect, useCallback} from 'react';
-import {Text, ImageBackground, Image, View} from 'react-native';
-import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scrollview';
-import {step1} from 'react-native/Libraries/Animated/Easing';
-import {icons, images} from '../../../assets';
+import React, { useState, useRef, useLayoutEffect, useCallback } from 'react';
+import { Text, ImageBackground, Image, View } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scrollview';
+import { step1 } from 'react-native/Libraries/Animated/Easing';
+import { icons, images } from '../../../assets';
 import Button from '../../../components/Button';
 import ImageUpload from '../../../components/ImageUpload';
 import TextInput from '../../../components/TextInput';
@@ -12,17 +12,17 @@ import Ripple from '../../../components/Wrappers/Ripple';
 import GilroyBold from '../../../components/Wrappers/Text/GilroyBold';
 import GilroyMedium from '../../../components/Wrappers/Text/GilroyMedium';
 import GilroyRegular from '../../../components/Wrappers/Text/GilroyRegular';
-import {styles} from './styles';
+import { styles } from './styles';
 import vh from '../../../utils/units/vh';
 import DropDown from '../../../components/Dropdown';
 // import ImagePicker from '../../../components/ImagePicker';
-import {showToast} from '../../../Api/HelperFunction';
-import {useDispatch} from 'react-redux';
+import { showToast } from '../../../Api/HelperFunction';
+import { useDispatch } from 'react-redux';
 import {
   getVehicleTypes,
   vehicleRegister,
 } from '../../../Redux/Actions/registerVechicle';
-import {useFocusEffect} from '@react-navigation/native';
+import { useFocusEffect } from '@react-navigation/native';
 
 const RegisterVehicle = props => {
   const dispatch = useDispatch();
@@ -36,7 +36,7 @@ const RegisterVehicle = props => {
   const [licensePlateNo, setLicensePlateNo] = useState('');
   const [vinNumber, setVinNumber] = useState('');
   const [vehicleTypes, setVehicleTypes] = useState([]);
-  const [VehicleTypeName,setVehicleTypeName] = useState('')
+  const [VehicleTypeName, setVehicleTypeName] = useState('')
 
   const brandNameRef = useRef(null);
   const vehicleNameRef = useRef(null);
@@ -50,7 +50,7 @@ const RegisterVehicle = props => {
       console.log('Response from Get Vehicle Types ==>', response);
       // const tempData = [];
       const tempData = response?.vehicle?.map(val => {
-        return {label: val?.name, value: val?.name, id: val?._id};
+        return { label: val?.name, value: val?.name, id: val?._id };
       });
       console.log('Response from Get Vehicle Types tempData ==>', tempData);
 
@@ -171,19 +171,19 @@ const RegisterVehicle = props => {
   };
 
   const ImagePick = async () => {
-    try{
-const response =  await   DocumentPicker.pick({
-      allowMultiSelection: true,
-      type: [types.pdf, types.images]
-    })
-    setLicense(response)
-  }catch(err){
-    showToast(err)
-  }
+    try {
+      const response = await DocumentPicker.pick({
+        allowMultiSelection: true,
+        type: [types.pdf, types.images]
+      })
+      setLicense(response)
+    } catch (err) {
+      showToast(err)
+    }
   };
   const ImagePickDocument = () => {
     DocumentPicker.pickMultiple().then(file => {
-      console.log("File ===>",file);
+      console.log("File ===>", file);
 
       setDocuments(file);
     });
@@ -198,7 +198,7 @@ const response =  await   DocumentPicker.pick({
         vehicleTypes,
         'Select Category',
         data => {
-          console.log("Response from Get Vehicle Types data",data);
+          console.log("Response from Get Vehicle Types data", data);
           setVehicleType(data.id);
           setVehicleTypeName(data.value);
           // tmp = [...vehicleType]
@@ -239,11 +239,11 @@ const response =  await   DocumentPicker.pick({
         autoFocus={true}
         onSubmitEditing={() => vehicleNameRef.current.focus()}
 
-        // secureTextEntry
+      // secureTextEntry
       />
 
       <TextInput
-      reference = {vehicleNameRef}
+        reference={vehicleNameRef}
         title="Vehicle Name*"
         placeholder="Vehicle Name"
         onChangeText={text => setVehicleName(text)}
@@ -251,7 +251,7 @@ const response =  await   DocumentPicker.pick({
 
       />
       <TextInput
-      reference = {vehicleColorRef}
+        reference={vehicleColorRef}
         title="Vehicle Color*"
         placeholder="Vehicle Color"
         onChangeText={text => setVehicleColor(text)}
@@ -259,7 +259,7 @@ const response =  await   DocumentPicker.pick({
 
       />
       <TextInput
-      reference = {licensePlateNoRef}
+        reference={licensePlateNoRef}
         title="License Plate No*"
         placeholder="License Plate No"
         onChangeText={text => setLicensePlateNo(text)}
@@ -290,7 +290,7 @@ const response =  await   DocumentPicker.pick({
         placeholder="Enter VIN Number"
         onChangeText={text => setVinNumber(text)}
         keyboardType={'number-pad'}
-        
+
       />
       {/* <ImageUpload title="Insurance Documents" description="PDF, Doc (10 MB max)" />
        */}
@@ -300,9 +300,9 @@ const response =  await   DocumentPicker.pick({
         image={document}
         setImage={setDocuments}
         onPress={ImagePickDocument}
-        certificateImage={{height: '100%', width: '100%', borderRadius: vh * 2}}
+        certificateImage={{ height: '100%', width: '100%', borderRadius: vh * 2 }}
         uploadBoxStyle={{}}
-        imageContainer={{ height: '90%', width: '90%'}}
+        imageContainer={{ height: '90%', width: '90%' }}
       />
       <Button
         style={styles.buttonStyle}
@@ -326,14 +326,14 @@ const response =  await   DocumentPicker.pick({
   );
 
   return (
-    <ImageBackground style={styles.container} source={images.backgroundImage}>
+    <View style={styles.container}>
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.contentContainer}>
         {renderItem()}
       </KeyboardAwareScrollView>
       <DropDown ref={DropDownRefHobby} />
-    </ImageBackground>
+    </View>
   );
 };
 export default RegisterVehicle;

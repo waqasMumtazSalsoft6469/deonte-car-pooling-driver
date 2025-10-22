@@ -259,8 +259,14 @@ const MyVehicle = props => {
           />
         </>
       ) : (
-        <View>
-          <GilroyMedium>NO Vehicle Registered</GilroyMedium>
+        <View style={styles.registerButtonContainer}>
+          <GilroyMedium style={styles?.textStyle}>NO Vehicle Registered</GilroyMedium>
+          <Button
+            text="Register Vehicle"
+            style={styles.buttonStyle}
+            textStyle={styles.buttonText}
+            onPress={() => props.navigation.navigate("RegisterVehicle")}
+          />
         </View>
       )}
     </View>

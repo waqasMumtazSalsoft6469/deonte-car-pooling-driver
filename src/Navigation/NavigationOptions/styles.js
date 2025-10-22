@@ -17,7 +17,7 @@ export default styles = StyleSheet.create({
     // shadowOpacity: 0.4,
     // shadowRadius: 3.84,
   },
-  titleStyle:{
+  titleStyle: {
     color: theme.colors.white
   },
   crossBtn: {
@@ -52,7 +52,7 @@ export default styles = StyleSheet.create({
     height: 1.2 * vh,
     resizeMode: "contain",
     width: 4.2 * vw,
-    tintColor: theme.colors.black, 
+    tintColor: theme.colors.black,
   },
   headerNotificationButtons: {
     height: 2.3 * vh,
