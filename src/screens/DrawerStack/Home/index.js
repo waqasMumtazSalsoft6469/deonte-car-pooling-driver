@@ -287,8 +287,7 @@ const Home = props => {
         rating: Rating,
         review: 'No Review',
       };
-      const response = await dispatch(rideEndRideAction(rideId, body));
-
+      const response = await dispatch(rideEndRideAction(rideId, body)); 
       showToast(response?.message);
       getRideDetails(rideId);
     } catch (err) {
