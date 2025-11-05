@@ -4,6 +4,9 @@ import {Fonts, icons} from '../../assets';
 import IconButton from '../../components/IconButton';
 import styles from './styles';
 import GilroyBold from '../../components/Wrappers/Text/GilroyBold';
+import theme from '../../utils/theme';
+import vh from '../../utils/units/vh';
+import vw from '../../utils/units/vw';
 
 const leftBtnRoutes = {
   Home: 'Home',
@@ -82,8 +85,18 @@ const getTitle = props => {
     );
   }
   if (titlesWhite[props?.route?.name]) {
+    // Register Vehicle uses primary color for title text since screen background is white
+    if (props?.route?.name === 'RegisterVehicle' || props?.route?.params?.screen === 'RegisterVehicle') {
+      return (
+        <View style={styles.titleContainerTransparent}>
+          <GilroyBold style={[styles.titleStylePrimary, {color: theme.colors.primaryColor}]}>
+            {titlesWhite[props?.route?.name]}
+          </GilroyBold>
+        </View>
+      );
+    }
     return (
-      <View style={styles.titleContainer}>
+      <View style={styles.titleContainerWhite}>
         <GilroyBold style={styles.titleStyle}>
           {titlesWhite[props?.route?.name]}
         </GilroyBold>
@@ -126,6 +139,17 @@ const getHeaderLeft = props => {
     );
   }
   if (leftBackWhiteRoutes[props?.route?.name]) {
+    // Register Vehicle uses primary color for back arrow since screen background is white
+    if (props?.route?.name === 'RegisterVehicle') {
+      return (
+        <IconButton
+          onPress={() => props.navigation.goBack()}
+          iconStyle={[styles.headerButtonsRegisterVehicle, {tintColor: theme.colors.primaryColor}]}
+          // customStyle={styles.imageContainer}
+          icon={icons.arrowBack}
+        />
+      );
+    }
     return (
       <IconButton
         onPress={() => props.navigation.goBack()}

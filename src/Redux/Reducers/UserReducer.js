@@ -45,13 +45,19 @@ const UserReducer = (state = initialState, action) => {
     case actionTypes.setLocation: {
       return {
         ...state,
-        userData: {
-          ...state.userData,
-          location: {
-            ...state.userData.location,
-            coordinates: action.coordinates,
-          },
-        },
+        userData: state.userData
+          ? {
+              ...state.userData,
+              location: {
+                ...(state.userData.location || {}),
+                coordinates: action.coordinates,
+              },
+            }
+          : {
+              location: {
+                coordinates: action.coordinates,
+              },
+            },
       };
     }
     default: {

@@ -58,9 +58,12 @@ export const endpoints = {
 
 // export const base_url = 'https://dev74.onlinetestingserver.com:6065/';
 // export const base_url = 'https://react.customdev.solutions:6065/';
-export const base_url = 'https://react.customdev.solutions:6065/';
-export const local_url = 'http://10.0.2.52:6065/';
 
+// export const base_url = 'https://react.customdev.solutions:6065/';
+// export const local_url = 'http://10.0.2.52:6065/';
+
+export const base_url = 'http://50.60.71.133:6065/';
+export const local_url = 'http://10.0.2.2:6065/';
 //Change the port of base_url because it give a ssl error!
 // export const base_url = 'https://react.customdev.solutions:6066/';
 // export const base_url = 'http://10.0.2.52:6065/';

@@ -45,7 +45,7 @@ export const styles = StyleSheet.create({
   },
   vehicleTypeLabel: {
     paddingTop: vh * 2,
-    color: theme.colors.white,
+    color: theme.colors.black,
     paddingBottom: vh * 1,
     paddingLeft: vw * 4,
     width: vw * 80,

@@ -130,7 +130,7 @@ const DrawerContent = props => {
           />
         </View>
         <GilroyMedium style={styles.mark}>
-          Hi, {userDetail?.firstName}
+          Hi, {userDetail?.firstName || 'Driver'}
         </GilroyMedium>
       </View>
       {/* </Animated.View> */}

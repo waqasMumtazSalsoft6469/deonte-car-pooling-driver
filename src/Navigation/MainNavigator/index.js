@@ -26,6 +26,7 @@ function MainNavigator() {
   }, []);
   return (
     <MainStack.Navigator screenOptions={{headerShown: false}}>
+      {/* <MainStack.Screen name="DrawerNavigator" component={DrawerNavigator} /> */}
       {token ? (
         <MainStack.Screen name="DrawerNavigator" component={DrawerNavigator} />
       ) : (

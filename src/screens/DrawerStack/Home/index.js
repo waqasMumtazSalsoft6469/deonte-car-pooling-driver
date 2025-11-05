@@ -10,7 +10,10 @@ import {
   NativeModules,
   DeviceEventEmitter,
   NativeEventEmitter,
+  Alert,
+  AppState,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Permission} from 'react-native-permissions';
 import {styles} from './styles';
 import {TripRequestStyles} from './tripRequestStyles';
@@ -122,6 +125,10 @@ const Home = props => {
   const rideCancelledRef = useRef(null);
   const markpaidErrorRef = useRef(null);
   const paymentReceived = useRef(null);
+  const backgroundLocationDeniedRef = useRef(false); // Track if background location was denied
+  const backgroundLocationRequestedRef = useRef(false); // Track if we've already requested background location this session
+  const checkingSettingsRef = useRef(false); // Track if user is in settings
+  const BACKGROUND_LOCATION_DENIED_KEY = '@background_location_denied'; // AsyncStorage key
   const [deatils, setDetails] = useState();
   const [vechicleDeatils, setVechicleDetails] = useState();
   const [region, setRegion] = useState();
@@ -141,7 +148,7 @@ const Home = props => {
   const [rideStartered, setRideStarted] = useState(false);
   var watchID = null;
   const userDetail = useSelector(state => state.UserReducer.userData);
-  console.log('userDetail-cord', userDetail?.location?.coordinates[0]);
+  console.log('userDetail-cord', userDetail?.location?.coordinates?.[0]);
   console.log('userDetail-driver', userDetail);
 
   const RiderDetail = useSelector(state => state.SessionReducer.riderinfo);
@@ -162,7 +169,7 @@ const Home = props => {
   console.log('reduxRssideId', reduxRideId);
   console.log(
     'map-direction-√lat-lon',
-    rideDetails?.ride?.dropofflocation?.coordinates[0],
+    rideDetails?.ride?.dropofflocation?.coordinates?.[0],
   );
   console.log('region--region', region);
   const VehicleTypesfromReducer = useSelector(
@@ -804,37 +811,160 @@ const Home = props => {
       subscribeLocationLocation();
     } else {
       try {
-        const granted = await PermissionsAndroid.request(
+        // Check if foreground location permission is already granted
+        const foregroundCheck = await PermissionsAndroid.check(
           PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-          {
-            title: 'Location Access Required',
-            message:
-              'This App needs to Access your location to get you nearby rides',
-          },
         );
-        console.log('granted-granted', granted);
-        const backgroundGranted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
-          {
-            title: 'Location Access Required',
-            message:
-              'This App needs to Access your location in background to get you nearby rides',
-          },
-        );
-        console.log('backgroundGranted-backgroundGranted', backgroundGranted);
 
-        if (
-          granted === PermissionsAndroid.RESULTS.GRANTED &&
-          backgroundGranted === PermissionsAndroid.RESULTS.GRANTED
-        ) {
-          //To Check, If Permission is granted
-          console.log('Permission dddGranted');
+        let granted;
+        if (!foregroundCheck) {
+          // Only request if not already granted
+          granted = await PermissionsAndroid.request(
+            PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+            {
+              title: 'Location Access Required',
+              message:
+                'This App needs to Access your location to get you nearby rides',
+            },
+          );
+          console.log('granted-granted', granted);
+          
+          // If user selected "just for now" or denied, they likely don't want background location
+          // So we'll skip background location request to avoid the popup
+          if (granted === PermissionsAndroid.RESULTS.DENIED) {
+            // User denied foreground location, also mark background as denied
+            backgroundLocationDeniedRef.current = true;
+            try {
+              await AsyncStorage.setItem(BACKGROUND_LOCATION_DENIED_KEY, 'true');
+              console.log('Foreground location denied, skipping background location request');
+            } catch (err) {
+              console.log('Error saving background location preference:', err);
+            }
+          }
+        } else {
+          // Already granted, use the existing permission
+          granted = PermissionsAndroid.RESULTS.GRANTED;
+          console.log('Foreground location already granted');
+        }
+
+        // If foreground location is granted, proceed with getting location
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          console.log('Foreground Permission Granted, proceeding...');
           getOneTimeLocation();
 
-          //I Commit the bg service native code 2024, Because app is crashing on android.
-          // subscribeLocationLocation();
+          // Check if background location was previously denied FIRST (before any permission checks)
+          // This prevents the popup from showing if user already denied it
+          if (backgroundLocationDeniedRef.current) {
+            console.log('Background location was previously denied, skipping request completely');
+            console.log('Using foreground location only');
+            return; // Exit early, don't request background location at all
+          }
+
+          // Now handle background location permission
+          // Check if background location permission is already granted
+          const backgroundCheck = await PermissionsAndroid.check(
+            PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
+          );
+
+          // Double-check denial preference after permission check (in case it changed)
+          if (backgroundLocationDeniedRef.current) {
+            console.log('Background location was denied during this session, skipping request');
+            return; // Exit early, don't request background location
+          }
+
+          // If we've already requested background location this session and it was denied, skip
+          if (backgroundLocationRequestedRef.current && !backgroundCheck) {
+            console.log('Background location was already requested this session, skipping');
+            return; // Exit early, don't request again
+          }
+
+          let backgroundGranted;
+          // Only request background location if:
+          // 1. Foreground location is granted
+          // 2. Background location is not already granted
+          // 3. Background location hasn't been denied previously (tracked in ref)
+          // 4. We haven't already requested it this session
+          if (!backgroundCheck) {
+            // Mark that we're about to request it
+            backgroundLocationRequestedRef.current = true;
+            
+            // Show alert to inform user and open system settings
+            Alert.alert(
+              'Location Access Required',
+              'This App needs to Access your location in background to get you nearby rides. Please select "Allow all the time" in the next screen for best experience.',
+              [
+                {
+                  text: 'Cancel',
+                  style: 'cancel',
+                  onPress: async () => {
+                    // User cancelled, mark as denied
+                    backgroundLocationDeniedRef.current = true;
+                    backgroundLocationRequestedRef.current = true;
+                    try {
+                      await AsyncStorage.setItem(BACKGROUND_LOCATION_DENIED_KEY, 'true');
+                      console.log('User cancelled background location settings');
+                    } catch (err) {
+                      console.log('Error saving preference:', err);
+                    }
+                  },
+                },
+                {
+                  text: 'Open Settings',
+                  onPress: async () => {
+                    try {
+                      // Mark that user is going to settings
+                      checkingSettingsRef.current = true;
+                      // Open the app's location settings page
+                      await Linking.openSettings();
+                      console.log('Opened location settings - user can now choose their preference');
+                      // The permission check will happen when user returns (via useFocusEffect)
+                    } catch (err) {
+                      console.log('Error opening settings:', err);
+                      checkingSettingsRef.current = false;
+                      backgroundLocationDeniedRef.current = true;
+                      try {
+                        await AsyncStorage.setItem(BACKGROUND_LOCATION_DENIED_KEY, 'true');
+                      } catch (storageErr) {
+                        console.log('Error saving preference:', storageErr);
+                      }
+                    }
+                  },
+                },
+              ],
+            );
+            
+            // Set default value - will be updated when user returns from settings
+            backgroundGranted = PermissionsAndroid.RESULTS.DENIED;
+          } else if (backgroundCheck) {
+            backgroundGranted = PermissionsAndroid.RESULTS.GRANTED;
+            console.log('Background location already granted');
+            backgroundLocationRequestedRef.current = false; // Reset since it's granted
+            // Clear any denial preference if it's actually granted
+            try {
+              await AsyncStorage.removeItem(BACKGROUND_LOCATION_DENIED_KEY);
+              backgroundLocationDeniedRef.current = false;
+            } catch (err) {
+              console.log('Error clearing background location preference:', err);
+            }
+            // Background location already granted, can enable background service
+            // subscribeLocationLocation();
+          } else {
+            backgroundGranted = PermissionsAndroid.RESULTS.DENIED;
+            console.log('Background location not available');
+            // If background location is not available and was previously denied, don't request
+            if (backgroundLocationDeniedRef.current) {
+              console.log('Background location was previously denied, not requesting');
+            }
+          }
+
+          // Summary
+          if (backgroundGranted === PermissionsAndroid.RESULTS.GRANTED) {
+            console.log('Both permissions granted - background location enabled');
+          } else {
+            console.log('Using foreground location only (background denied or not available)');
+          }
         } else {
-          console.log('Permission Denied');
+          console.log('Foreground Permission Denied');
         }
       } catch (err) {
         console.log('Error from requestLocation ==>', err);
@@ -857,15 +987,84 @@ const Home = props => {
 
   useFocusEffect(
     React.useCallback(() => {
-      setTimeout(() => {
-        console.log('useFocusEffect -- is running!');
-        //This function is crached the build - Native Modules
-        requestLocationPermission();
-      }, 1000);
+      // Load persisted background location denial preference FIRST, then request permission
+      const loadAndRequestPermission = async () => {
+        try {
+          const denied = await AsyncStorage.getItem(BACKGROUND_LOCATION_DENIED_KEY);
+          if (denied === 'true') {
+            backgroundLocationDeniedRef.current = true;
+            console.log('Background location was previously denied, loaded from storage - will NOT request');
+          } else {
+            backgroundLocationDeniedRef.current = false;
+            console.log('Background location preference not found or was granted previously');
+          }
+        } catch (err) {
+          console.log('Error loading background location preference:', err);
+          backgroundLocationDeniedRef.current = false; // Default to false on error
+        }
+        
+        // Now request permission after loading the preference (with delay to ensure ref is set)
+        setTimeout(() => {
+          console.log('useFocusEffect -- is running!');
+          console.log('Background location denied ref:', backgroundLocationDeniedRef.current);
+          //This function is crached the build - Native Modules
+          requestLocationPermission();
+        }, 800); // Increased delay to ensure AsyncStorage loads
+      };
+      
+      loadAndRequestPermission();
 
       return () => stop();
     }, []),
   );
+
+  // Listen for app state changes to detect when user returns from settings
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', async nextAppState => {
+      if (nextAppState === 'active' && checkingSettingsRef.current) {
+        // App came to foreground and user was in settings
+        checkingSettingsRef.current = false;
+        setTimeout(async () => {
+          try {
+            const newBackgroundCheck = await PermissionsAndroid.check(
+              PermissionsAndroid.PERMISSIONS.ACCESS_BACKGROUND_LOCATION,
+            );
+            
+            if (newBackgroundCheck) {
+              // User granted background location from settings
+              backgroundLocationDeniedRef.current = false;
+              backgroundLocationRequestedRef.current = false;
+              try {
+                await AsyncStorage.removeItem(BACKGROUND_LOCATION_DENIED_KEY);
+                console.log('Background location granted from settings - cleared preference');
+                showToast('Background location enabled successfully', 'success');
+                // subscribeLocationLocation(); // Enable background service if needed
+              } catch (err) {
+                console.log('Error clearing preference:', err);
+              }
+            } else {
+              // User didn't grant background location from settings
+              backgroundLocationDeniedRef.current = true;
+              backgroundLocationRequestedRef.current = true;
+              try {
+                await AsyncStorage.setItem(BACKGROUND_LOCATION_DENIED_KEY, 'true');
+                console.log('Background location not granted from settings - saved preference');
+                showToast('Using foreground location only', 'info');
+              } catch (err) {
+                console.log('Error saving preference:', err);
+              }
+            }
+          } catch (err) {
+            console.log('Error checking background location after settings:', err);
+          }
+        }, 500);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
 
   const getData = async () => {
     try {
@@ -932,8 +1131,8 @@ const Home = props => {
   }, []);
 
   const [markerRegion, setmarkerRegion] = useState({
-    latitude: userDetail?.location?.coordinates[0],
-    longitude: userDetail?.location?.coordinates[1],
+    latitude: userDetail?.location?.coordinates?.[0] || 0,
+    longitude: userDetail?.location?.coordinates?.[1] || 0,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
@@ -1011,14 +1210,14 @@ const Home = props => {
               status == 'Started'
                 ? {
                     latitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates[1],
+                      rideDetails?.ride?.dropofflocation?.coordinates?.[1],
                     longitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates[0],
+                      rideDetails?.ride?.dropofflocation?.coordinates?.[0],
                   }
                 : {
-                    latitude: rideDetails?.ride?.pickuplocation?.coordinates[1],
+                    latitude: rideDetails?.ride?.pickuplocation?.coordinates?.[1],
                     longitude:
-                      rideDetails?.ride?.pickuplocation?.coordinates[0],
+                      rideDetails?.ride?.pickuplocation?.coordinates?.[0],
                   }
             }
             apikey={apikey}
@@ -1036,14 +1235,14 @@ const Home = props => {
               status == 'Started' || status == 'Completed'
                 ? {
                     latitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates[1],
+                      rideDetails?.ride?.dropofflocation?.coordinates?.[1],
                     longitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates[0],
+                      rideDetails?.ride?.dropofflocation?.coordinates?.[0],
                   }
                 : {
-                    latitude: rideDetails?.ride?.pickuplocation?.coordinates[1],
+                    latitude: rideDetails?.ride?.pickuplocation?.coordinates?.[1],
                     longitude:
-                      rideDetails?.ride?.pickuplocation?.coordinates[0],
+                      rideDetails?.ride?.pickuplocation?.coordinates?.[0],
                   }
             }>
             <Ripple

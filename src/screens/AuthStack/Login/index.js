@@ -19,8 +19,8 @@ import { requestUserPermission } from '../../../services/NotificationServices';
 const Login = props => {
   const dispatch = useDispatch();
   const [step, setStep] = useState(1);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('smith@gmail.com');
+  const [password, setPassword] = useState('Admin@123');
   const [deviceId, setDeviceId] = useState('');
   const [device_type, setDevice_type] = useState('');
   const [message, setMessage] = useState();
@@ -103,6 +103,7 @@ const Login = props => {
             placeholder="Enter Email Address"
             keyboardType="email-address"
             autoFocus={true}
+            value={email}
             onChangeText={setEmail}
             onSubmitEditing={() => passwordRef.current.focus()}
           />
@@ -112,6 +113,7 @@ const Login = props => {
             placeholder="Enter Password"
             secureTextEntry={true}
             onChangeText={setPassword}
+            value={password}
           />
 
           <View style={styles.forgotPasswordContainer}>

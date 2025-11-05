@@ -6,6 +6,7 @@ export const colors = {
   gray2: '#F3F3F3',
   // primaryColor: '#5568FE',
   primaryColor: '#1F176D',
+  secondaryColor: '#5568FE',
 
   red: '#FF1D1D',
   gray3: '#77838F',

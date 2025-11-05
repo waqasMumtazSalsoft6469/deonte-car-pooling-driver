@@ -17,8 +17,26 @@ export default styles = StyleSheet.create({
     // shadowOpacity: 0.4,
     // shadowRadius: 3.84,
   },
+  titleContainer: {
+    // Default container style for regular titles
+  },
+  titleContainerWhite: {
+    backgroundColor: theme.colors.primaryColor,
+    paddingHorizontal: vw * 4,
+    paddingVertical: vh * 1,
+    borderRadius: vw * 2,
+  },
+  titleContainerTransparent: {
+    // Transparent background for Register Vehicle since screen background is white
+    paddingHorizontal: vw * 4,
+    paddingVertical: vh * 1,
+  },
   titleStyle: {
     color: theme.colors.white
+  },
+  titleStylePrimary: {
+    color: theme.colors.primaryColor,
+    fontSize: vh * 2,
   },
   crossBtn: {
     height: vh * 2,
@@ -53,6 +71,12 @@ export default styles = StyleSheet.create({
     resizeMode: "contain",
     width: 4.2 * vw,
     tintColor: theme.colors.black,
+  },
+  headerButtonsRegisterVehicle: {
+    height: 1.2 * vh,
+    resizeMode: "contain",
+    width: 4.2 * vw,
+    tintColor: theme.colors.primaryColor,
   },
   headerNotificationButtons: {
     height: 2.3 * vh,

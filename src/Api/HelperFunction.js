@@ -86,9 +86,34 @@ export const performNetworkRequest = async (url, configs) => {
   url = encodeURI(url);
   try {
     const response = await fetch(url, configs);
-    const jsonResponse = await response.json();
-    return Promise.resolve({response, jsonResponse});
+    const contentType = response.headers.get('content-type') || '';
+    
+    // Check if response is JSON
+    if (contentType.includes('application/json')) {
+      const jsonResponse = await response.json();
+      return Promise.resolve({response, jsonResponse});
+    } else {
+      // If not JSON, get text to see what we received
+      const textResponse = await response.text();
+      console.log('Server returned non-JSON. Status:', response.status);
+      console.log('Response text (first 500 chars):', textResponse.substring(0, 500));
+      
+      // Try to parse as JSON anyway
+      try {
+        const jsonResponse = JSON.parse(textResponse);
+        return Promise.resolve({response, jsonResponse});
+      } catch (parseError) {
+        // If parsing fails, return error with status and response text
+        return Promise.reject({
+          message: `Server returned non-JSON response (Status: ${response.status})`,
+          status: response.status,
+          responseText: textResponse.substring(0, 500),
+          error: parseError,
+        });
+      }
+    }
   } catch (e) {
+    console.log('Network request error:', e);
     return Promise.reject(e);
   }
 };
@@ -137,7 +162,36 @@ export const jsonToFormdata = json => {
   var data = new FormData();
   const entries = Object.entries(json);
   entries.forEach(entry => {
-    data.append(entry[0], entry[1]);
+    const [key, value] = entry;
+    // Handle file objects (for React Native FormData)
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      // Check if it's a file object with uri, type, and name
+      if (value.uri || value.path || value.fileCopyUri) {
+        // Format as file object for React Native FormData
+        // Prioritize fileCopyUri (file:// path) over uri/path (may be content:// URIs)
+        // fileCopyUri is the actual file path after copying to cache directory
+        const fileUri = value.fileCopyUri || value.path || value.uri;
+        console.log(`FormData file for ${key}:`, {
+          uri: fileUri,
+          type: value.type || value.mimeType || 'application/octet-stream',
+          name: value.name || value.filename || 'file',
+        });
+        data.append(key, {
+          uri: fileUri,
+          type: value.type || value.mimeType || 'application/octet-stream',
+          name: value.name || value.filename || 'file',
+        });
+      } else {
+        // Regular object - stringify it
+        data.append(key, JSON.stringify(value));
+      }
+    } else if (Array.isArray(value)) {
+      // Handle arrays - stringify them
+      data.append(key, JSON.stringify(value));
+    } else {
+      // Primitive values
+      data.append(key, value);
+    }
   });
   return data;
 };
@@ -145,10 +199,12 @@ export const getConfigs = (method, body, formData = true) => {
   var headers = {
     Accept: 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
-    'Content-Type': 'application/json',
   };
   if (formData == true) {
-    headers['Content-Type'] = 'multipart/form-data';
+    // Don't set Content-Type for FormData - let React Native set it automatically
+    // It will include the boundary parameter
+  } else {
+    headers['Content-Type'] = 'application/json';
   }
   const data = store.getState();
   if (data) {

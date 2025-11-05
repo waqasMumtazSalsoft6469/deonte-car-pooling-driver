@@ -82,6 +82,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        // Force Metro bundler port to 82
+        resValue "integer", "react_native_dev_server_port", "82"
     }
     signingConfigs {
         debug {

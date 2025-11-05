@@ -1,5 +1,5 @@
 import React from 'react';
-import {View, TouchableOpacity, Animated, Dimensions, Text} from 'react-native';
+import {View, TouchableOpacity, Animated, Dimensions, Text, FlatList} from 'react-native';
 // import {WheelPicker} from '../../libs/react-native-wheel-picker-android';
 import {styles} from './styles';
 
@@ -118,15 +118,37 @@ export default class DropDown extends React.Component {
       };
     });
   };
+  renderListItem = ({item, index}) => {
+    const isSelected = index === this.state.selectedItem;
+    return (
+      <TouchableOpacity
+        style={[
+          {
+            paddingVertical: 2 * vh,
+            paddingHorizontal: 4 * vw,
+            backgroundColor: isSelected ? '#e0e0e0' : 'transparent',
+            borderBottomWidth: 1,
+            borderBottomColor: '#f0f0f0',
+          },
+        ]}
+        onPress={() => this.onItemSelected(index)}>
+        <Text style={{fontSize: 2.2 * vh, color: isSelected ? '#1F176D' : '#000'}}>
+          {item}
+        </Text>
+      </TouchableOpacity>
+    );
+  };
+
   renderWheel = () => {
     if (this.state.dataToShow.length > 0) {
       return (
-        <></>
-        // <WheelPicker
-        //   selectedItem={this.state.selectedItem}
-        //   data={this.state.dataToShow}
-        //   onItemSelected={this.onItemSelected}
-        // />
+        <FlatList
+          data={this.state.dataToShow}
+          renderItem={this.renderListItem}
+          keyExtractor={(item, index) => index.toString()}
+          showsVerticalScrollIndicator={true}
+          style={{width: '100%'}}
+        />
       );
     } else {
       return null;
@@ -202,3 +224,4 @@ export default class DropDown extends React.Component {
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 const AmatedRegularText = Animated.createAnimatedComponent(Text);
 const vh = Dimensions.get('window').height * 0.01;
+const vw = Dimensions.get('window').width * 0.01;

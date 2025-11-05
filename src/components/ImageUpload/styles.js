@@ -44,4 +44,21 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
   },
+  pdfContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2 * vw,
+  },
+  pdfIcon: {
+    height: 4 * vh,
+    width: 4 * vh,
+    resizeMode: 'contain',
+    marginBottom: 0.5 * vh,
+  },
+  pdfFileName: {
+    fontSize: 1.6 * vh,
+    color: theme.colors.textBlack,
+    maxWidth: 60 * vw,
+    textAlign: 'center',
+  },
 });
