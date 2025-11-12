@@ -51,7 +51,7 @@ import {
   getVehicleInfo,
   getVehicleTypes,
 } from '../../../Redux/Actions/registerVechicle';
-import {io} from 'socket.io-client';
+import SocketService from '../../../services/socket';
 import {
   getCurrentLocation,
   watchPosition,
@@ -92,8 +92,6 @@ const CustomButton = props => {
     </Ripple>
   );
 };
-const socket = io(base_url);
-console.log('socket: ', socket);
 const Home = props => {
   const dispatch = useDispatch();
   const {BackgroundLocation} = NativeModules;
@@ -128,13 +126,14 @@ const Home = props => {
   const backgroundLocationDeniedRef = useRef(false); // Track if background location was denied
   const backgroundLocationRequestedRef = useRef(false); // Track if we've already requested background location this session
   const checkingSettingsRef = useRef(false); // Track if user is in settings
+  const locationIntervalRef = useRef(null); // Track location update interval
   const BACKGROUND_LOCATION_DENIED_KEY = '@background_location_denied'; // AsyncStorage key
   const [deatils, setDetails] = useState();
   const [vechicleDeatils, setVechicleDetails] = useState();
   const [region, setRegion] = useState();
   const [showPopUp, setShowPopup] = useState(true);
   const [rideDetails, setRideDetails] = useState();
-  const [Distance, setDistance] = useState(10);
+  const [Distance, setDistance] = useState(0);
   const [paused, setPaused] = useState(false);
   const [amountReceived, setAmountReceived] = useState('');
   const [acceptRide, setAcceptRide] = useState(false);
@@ -143,13 +142,49 @@ const Home = props => {
   const [rideStatus, setRideStatus] = useState();
   const [Rating, setRating] = useState(0);
   const [status, setStatus] = useState();
-  const [switchh, setSwitch] = useState(true);
+  const userDetail = useSelector(state => state.UserReducer.userData);
+  // Initialize switch state based on login data flag
+  // Default to false (Offline) if flag is not available, to be safe
+  // Track if toggle was user-initiated to prevent useEffect from overwriting it
+  const userToggledRef = useRef(false);
+  const toggleTimestampRef = useRef(0);
+  
+  const [switchh, setSwitch] = useState(() => {
+    // Check if userDetail and flag are available
+    if (userDetail && userDetail.hasOwnProperty('flag')) {
+      let flagValue = userDetail.flag;
+      
+      // Convert string "true"/"false" to boolean if needed
+      if (typeof flagValue === 'string') {
+        flagValue = flagValue.toLowerCase() === 'true';
+      } else if (typeof flagValue !== 'boolean') {
+        flagValue = Boolean(flagValue);
+      }
+      
+      console.log('[Home] 📍 Initializing switch from userDetail.flag:', userDetail.flag, '→', flagValue);
+      return flagValue;
+    }
+    // Default to false (Offline) if not available
+    console.log('[Home] ⚠️ userDetail.flag not available, defaulting to false (Offline)');
+    return false;
+  });
   const [rideAccepted, setRideAccepted] = useState(false);
   const [rideStartered, setRideStarted] = useState(false);
+  const [currentLatitude, setCurrentLatitude] = useState(null);
+  const [currentLongitude, setCurrentLongitude] = useState(null);
   var watchID = null;
-  const userDetail = useSelector(state => state.UserReducer.userData);
   console.log('userDetail-cord', userDetail?.location?.coordinates?.[0]);
   console.log('userDetail-driver', userDetail);
+  console.log('[Home] 📍 userDetail.flag value:', userDetail?.flag);
+  console.log('[Home] 📍 userDetail.flag type:', typeof userDetail?.flag);
+  console.log('[Home] 📍 Current switchh state:', switchh);
+  
+  // Log current driver location coordinates
+  console.log('[Home] 📍 Current Driver Location State:', {
+    latitude: currentLatitude,
+    longitude: currentLongitude,
+    timestamp: new Date().toISOString(),
+  });
 
   const RiderDetail = useSelector(state => state.SessionReducer.riderinfo);
   console.log('RiderDetail', RiderDetail);
@@ -185,26 +220,54 @@ const Home = props => {
   const getRideDetails = async id => {
     try {
       const response = await dispatch(rideDeatilsAction(id));
-      if (response?.ride?.rideStatus == 'Started') {
+      const rideStatus = response?.ride?.rideStatus;
+      
+      // Always set ride details and status first
+      setRideDetails(response);
+      setRideStatus(response?.ride);
+      
+      console.log('[Home] 📍 getRideDetails - Setting status:', rideStatus);
+      
+      if (rideStatus == 'Started') {
         setRideStarted(true);
-      } else if (response?.ride?.rideStatus == 'Accepted') {
+        setRideAccepted(false);
+        setStatus(rideStatus);
+        console.log('[Home] ✅ Ride Started - Status set to:', rideStatus);
+      } else if (rideStatus == 'Accepted') {
         setRideAccepted(true);
+        setRideStarted(false);
+        setStatus(rideStatus);
+        console.log('[Home] ✅ Ride Accepted - Status set to:', rideStatus, 'rideAccepted:', true);
       } else if (
-        response?.ride?.rideStatus == 'Completed' ||
-        response?.ride?.rideStatus == 'Cancelled'
+        rideStatus == 'Completed' ||
+        rideStatus == 'Cancelled'
       ) {
+        // Reset all ride-related state when ride is completed or cancelled
         setRideAccepted(false);
         setRideStarted(false);
+        setDistance(0); // Reset distance immediately
+        // Clear status immediately to hide route line and markers
+        setStatus(null);
+        console.log('[Home] ✅ Ride Completed/Cancelled - Status cleared');
+        // Still set ride details for display purposes (for receipt/mark paid), but clear after delay
+        // Clear ride details after a delay to allow UI to update
+        setTimeout(() => {
+          setRideDetails(null);
+          setRideStatus(null);
+          setStatus(null);
+        }, 2000);
       } else {
         setRideAccepted(false);
         setRideStarted(false);
+        setStatus(rideStatus);
+        console.log('[Home] ✅ Other status - Status set to:', rideStatus);
       }
-      console.log('response-----------getRideDetails', response);
-      console.log('response-----------rideStatus', response?.ride?.rideStatus);
-      console.log('response-----------ride', response?.ride);
-      setRideDetails(response);
-      setRideStatus(response?.ride);
-      setStatus(response?.ride?.rideStatus);
+      
+      console.log('[Home] 📍 State values being set:', {
+        rideStatus,
+        settingRideAccepted: rideStatus == 'Accepted',
+        settingRideStarted: rideStatus == 'Started',
+      });
     } catch (err) {
       showToast(err);
     }
@@ -215,9 +278,35 @@ const Home = props => {
   useEffect(() => {
     NotificationListener(handleNotifications);
   }, []);
+  
+  // Initialize switch state from userDetail flag on mount
+  useEffect(() => {
+    console.log('[Home] 🔄 Component mounted - Checking userDetail.flag');
+    console.log('[Home] 📍 userDetail:', userDetail);
+    console.log('[Home] 📍 userDetail.flag:', userDetail?.flag);
+    
+    if (userDetail && userDetail.hasOwnProperty('flag')) {
+      let flagValue = userDetail.flag;
+      
+      // Convert string "true"/"false" to boolean if needed
+      if (typeof flagValue === 'string') {
+        flagValue = flagValue.toLowerCase() === 'true';
+      } else if (typeof flagValue !== 'boolean') {
+        flagValue = Boolean(flagValue);
+      }
+      
+      console.log('[Home] 📍 Setting switch from userDetail.flag on mount:', userDetail.flag, '→', flagValue);
+      setSwitch(flagValue);
+    } else {
+      console.log('[Home] ⚠️ userDetail.flag not available on mount');
+    }
+  }, []); // Run only on mount
+  
   //Working on useEffect
   useEffect(() => {
     getOneTimeLocation();
+    // Also fetch location using helper function
+    fetchDriverLocation();
   }, []);
   useEffect(() => {
     //I Replace ReduxRideId to driverRideId
@@ -230,16 +319,32 @@ const Home = props => {
 
   const handleAcceptButton = async () => {
     try {
+      const socket = SocketService.getSocket();
+      
+      // Emit acceptance via socket
+      if (socket && SocketService.isSocketConnected() && rideId && driverUserId) {
+        socket.emit('ride:accept', {
+          rideId: rideId,
+          driverId: driverUserId,
+        });
+        console.log('🔵 Socket EMIT: ride:accept', {rideId, driverId: driverUserId});
+      }
+      
+      // Also call API endpoint as backup
       const response = await dispatch(acceptRideAction(rideId));
       showToast(response?.message);
-      getRideDetails(rideId);
+      
+      // Close modal first
+      modalRef2.current.hide();
+      
+      // Then fetch ride details which will set status to 'Accepted'
+      await getRideDetails(rideId);
+      
       setAcceptRide(false);
       // dispatch({
       //   type: actionTypes.rideId,
       //   currentRideId: rideId,
       // });
-
-      modalRef2.current.hide();
     } catch (err) {
       showToast(err);
       setShowPopup(true);
@@ -248,10 +353,23 @@ const Home = props => {
 
   const handleRejectButton = async () => {
     try {
+      const socket = SocketService.getSocket();
+      
+      // Emit rejection via socket
+      if (socket && SocketService.isSocketConnected() && rideId && driverUserId) {
+        socket.emit('ride:reject', {
+          rideId: rideId,
+          driverId: driverUserId,
+          reason: 'Not available',
+        });
+        console.log('🔵 Socket EMIT: ride:reject', {rideId, driverId: driverUserId});
+      }
+      
+      // Also call API endpoint as backup
       const response = await dispatch(rejectRideAction(rideId));
       showToast(response?.message);
       setAcceptRide(false);
-      setStatus(false);
+      setStatus(null); // Clear status properly
       //  modalRef2.current.hide();
     } catch (err) {
       showToast(err);
@@ -482,18 +600,50 @@ const Home = props => {
   };
 
   const handleDriverStatus = async () => {
-    setSwitch(!switchh);
+    // Calculate the new value first
+    const newSwitchValue = !switchh;
+    
+    // Mark as user-initiated toggle
+    userToggledRef.current = true;
+    toggleTimestampRef.current = Date.now();
+    
+    // Update local state first
+    setSwitch(newSwitchValue);
 
+    // Send the NEW value to the server (not the old one)
     const body = {
-      flag: !switchh,
+      flag: newSwitchValue, // Use the new value, not the old one
     };
+    
+    console.log('[Home] 🔄 Toggling driver status:', {
+      oldValue: switchh,
+      newValue: newSwitchValue,
+      sendingFlag: newSwitchValue,
+    });
+    
     try {
       const response = await dispatch(changeDriverStatus(body));
-      // console.log('Response ====>', response);
-      console.log('Response ====> --- ß', response?.driver?.location);
+      console.log('[Home] ✅ Driver status updated:', response);
+      console.log('[Home] 📍 Response driver location:', response?.driver?.location);
+      
+      // Update Redux store with the new flag value if response contains driver data
+      if (response?.driver?.flag !== undefined) {
+        // The API response might have the updated flag, but we already set it locally
+        // So we don't need to update it again unless there's a mismatch
+        console.log('[Home] 📍 API response flag:', response.driver.flag);
+      }
 
       LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+      
+      // Reset the user toggle flag after 2 seconds (enough time for API response)
+      setTimeout(() => {
+        userToggledRef.current = false;
+      }, 2000);
     } catch (err) {
+      console.error('[Home] ❌ Error updating driver status:', err);
+      // Revert the switch if API call fails
+      setSwitch(switchh);
+      userToggledRef.current = false;
       showToast(err);
     }
   };
@@ -504,7 +654,7 @@ const Home = props => {
         <UserDetailsCard data={rideDetails} />
 
         <View>
-          {status != 'Completed' && (
+          {status != 'Completed' && status != 'Cancelled' && (
             <PauseButton
               modalRef={modalRef}
               {...props}
@@ -544,7 +694,7 @@ const Home = props => {
     return (
       <View style={tripAcceptStyles.CardContainer}>
         <GilroyBold style={tripAcceptStyles.tripIdText}>
-          Trip ID: {rideId ? rideId : ''}
+          Trip ID: {rideId && typeof rideId === 'string' ? rideId : 'N/A'}
         </GilroyBold>
         <View style={tripAcceptStyles.usernameProfileContainer}>
           <View style={tripAcceptStyles.userNameImageContainer}>
@@ -662,44 +812,270 @@ const Home = props => {
     );
   };
   console.log(rideDetails, 'ride details');
+  
+  // Function to fetch driver's current latitude and longitude
+  const fetchDriverLocation = async () => {
+    // First, check if we have cached location available
+    if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+      const cachedLat = userDetail.location.coordinates[0];
+      const cachedLon = userDetail.location.coordinates[1];
+      console.log('[Home] 📍 Using cached location immediately:', {cachedLat, cachedLon});
+      setCurrentLatitude(cachedLat);
+      setCurrentLongitude(cachedLon);
+    }
+    
+    try {
+      console.log('[Home] 📍 Attempting to fetch fresh driver location...');
+      
+      // Try with faster settings first (accept cached location up to 30 seconds old)
+      let location;
+      try {
+        location = await getCurrentLocation({
+          enableHighAccuracy: false,
+          timeout: 10000, // 10 seconds for first attempt
+          maximumAge: 30000, // Accept location up to 30 seconds old
+        });
+      } catch (firstError) {
+        // If first attempt fails, try with even more lenient settings
+        console.log('[Home] ⚠️ First attempt failed, trying with more lenient settings...');
+        try {
+          location = await getCurrentLocation({
+            enableHighAccuracy: false,
+            timeout: 15000, // 15 seconds for second attempt
+            maximumAge: 60000, // Accept location up to 1 minute old
+          });
+        } catch (secondError) {
+          // Both attempts failed, use cached location or throw error
+          console.error('[Home] ❌ Both location attempts failed');
+          throw firstError; // Throw the first error to handle in outer catch
+        }
+      }
+      
+      if (location && location.latitude && location.longitude) {
+        const latitude = location.latitude;
+        const longitude = location.longitude;
+        
+        // Validate coordinates are reasonable
+        if (isNaN(latitude) || isNaN(longitude) || 
+            latitude < -90 || latitude > 90 || 
+            longitude < -180 || longitude > 180) {
+          throw new Error('Invalid coordinates received');
+        }
+        
+        // Store in state
+        setCurrentLatitude(latitude);
+        setCurrentLongitude(longitude);
+        
+        console.log('[Home] ✅ Driver location fetched successfully');
+        console.log('[Home] 📍 Current Latitude:', latitude);
+        console.log('[Home] 📍 Current Longitude:', longitude);
+        console.log('[Home] 📍 Coordinates:', {latitude, longitude});
+        console.log('[Home] 📍 Timestamp:', new Date().toISOString());
+        
+        // Also save to Redux
+        dispatch({
+          type: actionTypes.setLocation,
+          coordinates: [latitude, longitude],
+        });
+        
+        return {latitude, longitude};
+      } else {
+        throw new Error('Invalid location data received');
+      }
+    } catch (error) {
+      console.error('[Home] ❌ Error fetching driver location:', error);
+      console.error('[Home] Error details:', {
+        message: error?.message || 'Unknown error',
+        code: error?.code,
+        fullError: error,
+      });
+      
+      // Handle specific error codes
+      if (error?.code === 3) {
+        // TIMEOUT - Use cached location if available
+        console.log('[Home] ⏱️ Location request timed out, using cached location...');
+        if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+          const cachedLat = userDetail.location.coordinates[0];
+          const cachedLon = userDetail.location.coordinates[1];
+          console.log('[Home] 📍 Using cached location from Redux:', {cachedLat, cachedLon});
+          setCurrentLatitude(cachedLat);
+          setCurrentLongitude(cachedLon);
+          // Don't show toast if we have cached location - it's working fine
+          console.log('[Home] ✅ Using cached location successfully');
+          return {latitude: cachedLat, longitude: cachedLon};
+        } else {
+          showToast('Location timed out. Using last known location if available.');
+        }
+      } else if (error?.code === 1) {
+        // PERMISSION_DENIED
+        showToast('Location permission denied. Please enable location permission in settings.');
+      } else if (error?.code === 2) {
+        // POSITION_UNAVAILABLE
+        if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+          // Use cached location silently
+          const cachedLat = userDetail.location.coordinates[0];
+          const cachedLon = userDetail.location.coordinates[1];
+          setCurrentLatitude(cachedLat);
+          setCurrentLongitude(cachedLon);
+          console.log('[Home] ✅ Using cached location (GPS unavailable)');
+          return {latitude: cachedLat, longitude: cachedLon};
+        } else {
+          showToast('Location unavailable. Please check GPS settings.');
+        }
+      } else {
+        // For any other error, try to use cached location
+        if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+          const cachedLat = userDetail.location.coordinates[0];
+          const cachedLon = userDetail.location.coordinates[1];
+          setCurrentLatitude(cachedLat);
+          setCurrentLongitude(cachedLon);
+          console.log('[Home] ✅ Using cached location as fallback');
+          return {latitude: cachedLat, longitude: cachedLon};
+        } else {
+          showToast('Failed to get current location. Please check GPS and try again.');
+        }
+      }
+      return null;
+    }
+  };
+  
   const getOneTimeLocation = () => {
-    console.log('Getting Location ...');
-    console.log('ride--id', rideId);
+    console.log('[Home] 📍 Getting one-time location...');
+    console.log('[Home] Ride ID:', rideId);
+    
+    // Use cached location immediately if available
+    if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+      const cachedLat = userDetail.location.coordinates[0];
+      const cachedLon = userDetail.location.coordinates[1];
+      setCurrentLatitude(cachedLat);
+      setCurrentLongitude(cachedLon);
+      console.log('[Home] 📍 Using cached location immediately:', {cachedLat, cachedLon});
+    }
+    
     const config = {
-      enableHighAccuracy: false,
-      timeout: 10000,
+      enableHighAccuracy: false, // Use false for faster response
+      timeout: 15000, // 15 seconds timeout (reduced for faster fallback)
+      maximumAge: 60000, // Accept location up to 1 minute old (for faster response)
     };
+    
+    console.log('[Home] Location config:', config);
+    
     Geolocation.getCurrentPosition(
       //Will give you the current location
       position => {
         //Saving the location on redux
-        console.log('sssss', position);
+        console.log('[Home] ✅ Location position received:', position);
+        
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+        
+        // Validate coordinates
+        if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude) ||
+            latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+          console.error('[Home] ❌ Invalid coordinates:', {latitude, longitude});
+          // Don't show toast, just use cached location
+          if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+            const cachedLat = userDetail.location.coordinates[0];
+            const cachedLon = userDetail.location.coordinates[1];
+            setCurrentLatitude(cachedLat);
+            setCurrentLongitude(cachedLon);
+            console.log('[Home] 📍 Using cached location due to invalid coordinates');
+          }
+          return;
+        }
+        
+        // Store in state
+        setCurrentLatitude(latitude);
+        setCurrentLongitude(longitude);
+        
+        console.log('[Home] 📍 Driver location from getOneTimeLocation');
+        console.log('[Home] 📍 Latitude:', latitude);
+        console.log('[Home] 📍 Longitude:', longitude);
+        
         dispatch({
           type: actionTypes.setLocation,
-          coordinates: [position.coords.latitude, position.coords.longitude],
+          coordinates: [latitude, longitude],
         });
         //Ride Id 65e5dbd8fc4f2443ec589f1c
         //Coords [24.8739192,67.0672376]
 
         const obj = {
           userId: userDetail?._id,
-          coordinates: [position.coords.latitude, position.coords.longitude],
+          coordinates: [latitude, longitude],
         };
 
-        socket.emit('drivercoordinates', obj);
+        console.log('[Home] 🔵 Emitting driver coordinates to socket:', obj);
+        const socket = SocketService.getSocket();
+        if (socket && SocketService.isSocketConnected()) {
+          socket.emit('drivercoordinates', obj);
+        }
       },
       error => {
-        console.log('Error from getOneTimeLocation', error);
-        showToast(error.message);
+        console.error('[Home] ❌ Error from getOneTimeLocation:', error);
+        console.error('[Home] Error code:', error.code);
+        console.error('[Home] Error message:', error.message);
+        
+        // Better error handling - use cached location if available
+        if (userDetail?.location?.coordinates && userDetail.location.coordinates.length >= 2) {
+          const cachedLat = userDetail.location.coordinates[0];
+          const cachedLon = userDetail.location.coordinates[1];
+          setCurrentLatitude(cachedLat);
+          setCurrentLongitude(cachedLon);
+          
+          if (error.code === 3) {
+            // TIMEOUT - Use cached location silently
+            console.log('[Home] ⏱️ Location timeout - using cached location:', {cachedLat, cachedLon});
+            // Emit cached location to socket
+            const obj = {
+              userId: userDetail?._id,
+              coordinates: [cachedLat, cachedLon],
+            };
+            const socket = SocketService.getSocket();
+            if (socket && SocketService.isSocketConnected()) {
+              socket.emit('drivercoordinates', obj);
+            }
+            // Don't show toast - cached location is working
+          } else if (error.code === 1) {
+            showToast('Location permission denied. Using cached location.');
+          } else if (error.code === 2) {
+            console.log('[Home] 📍 GPS unavailable - using cached location:', {cachedLat, cachedLon});
+            // Emit cached location to socket
+            const obj = {
+              userId: userDetail?._id,
+              coordinates: [cachedLat, cachedLon],
+            };
+            const socket = SocketService.getSocket();
+            if (socket && SocketService.isSocketConnected()) {
+              socket.emit('drivercoordinates', obj);
+            }
+            // Don't show toast - cached location is working
+          } else {
+            console.log('[Home] 📍 Using cached location due to error:', {cachedLat, cachedLon});
+            // Emit cached location to socket
+            const obj = {
+              userId: userDetail?._id,
+              coordinates: [cachedLat, cachedLon],
+            };
+            const socket = SocketService.getSocket();
+            if (socket && SocketService.isSocketConnected()) {
+              socket.emit('drivercoordinates', obj);
+            }
+          }
+        } else {
+          // No cached location available, show error
+          if (error.code === 3) {
+            showToast('Location request timed out. Please enable GPS.');
+          } else if (error.code === 1) {
+            showToast('Location permission denied. Please enable in settings.');
+          } else if (error.code === 2) {
+            showToast('Location unavailable. Please check GPS settings.');
+          } else {
+            showToast(error.message || 'Failed to get location');
+          }
+        }
       },
       config,
     );
-
-    // Geolocation.getCurrentPosition(
-    //   info => console.log('INFO--------geo', info),
-    //   error => console.log('ERROR-------geo', error),
-    //   config
-    // );
   };
   const subscribeLocationLocation = async () => {
     try {
@@ -751,17 +1127,20 @@ const Home = props => {
         longitudeDelta: 0.005,
       };
       console.log(data, 'dataaa');
-      if (rideId) {
-        socket.emit('drivercoordinates', {
-          userId: rideId,
-          coordinates: [floatData?.longitude, floatData?.latitude],
-        });
-      } else {
-        console.log('userId ===>', userId);
-        socket.emit('drivercoordinates', {
-          userId: userId,
-          coordinates: [floatData?.longitude, floatData?.latitude],
-        });
+      const socket = SocketService.getSocket();
+      if (socket && SocketService.isSocketConnected()) {
+        if (rideId) {
+          socket.emit('drivercoordinates', {
+            userId: rideId,
+            coordinates: [floatData?.longitude, floatData?.latitude],
+          });
+        } else {
+          console.log('userId ===>', userId);
+          socket.emit('drivercoordinates', {
+            userId: userId,
+            coordinates: [floatData?.longitude, floatData?.latitude],
+          });
+        }
       }
 
       console.log(floatData, 'float data');
@@ -1113,13 +1492,308 @@ const Home = props => {
 
       getVechileInfo();
       getData();
+      
+      // Fetch driver location when screen comes into focus
+      fetchDriverLocation();
     }, [rideId]),
   );
 
+  // Track if socket is already initialized to prevent reconnection
+  const socketInitializedRef = useRef(false);
+  const socketListenersSetupRef = useRef(false);
+
+  // Socket connection and setup
+  useEffect(() => {
+    // Prevent multiple initializations
+    if (socketInitializedRef.current) {
+      console.log('[Home] ⚠️ Socket already initialized, skipping...');
+      return;
+    }
+
+    const setupSocketListeners = (socketInstance) => {
+      // Prevent multiple listener setups
+      if (socketListenersSetupRef.current) {
+        console.log('[Home] ⚠️ Socket listeners already set up, skipping...');
+        return;
+      }
+
+      console.log('[Home] 🔧 Setting up socket listeners...');
+      socketListenersSetupRef.current = true;
+      
+      // Remove old listeners first to prevent duplicates
+      socketInstance.off('ride:request');
+      socketInstance.off('ride:accepted_by_other');
+      socketInstance.off('ride:accept:success');
+      socketInstance.off('ride:error');
+      
+      // Listen for incoming ride requests
+      socketInstance.on('ride:request', (rideData) => {
+        console.log('[Home] 📨 ========== NEW RIDE REQUEST RECEIVED ==========');
+        console.log('[Home] 📨 Ride request data:', rideData);
+        console.log('[Home] 📨 Ride ID:', rideData?.rideId || rideData?._id);
+        console.log('[Home] 📨 User ID:', rideData?.userId);
+        console.log('[Home] 📨 Pickup location:', {
+          latitude: rideData?.latitude,
+          longitude: rideData?.longitude,
+        });
+        console.log('[Home] 📨 Vehicle type ID:', rideData?.vehicletypeid);
+        console.log('[Home] 📨 Package ID:', rideData?.packageId);
+        console.log('[Home] 📨 Route summary:', rideData?.routeSummary);
+        console.log('[Home] 📨 Timestamp:', new Date().toISOString());
+        console.log('[Home] 📨 ============================================');
+        
+        // Get ride details and update state
+        if (rideData?.rideId || rideData?._id) {
+          const rideIdToFetch = rideData.rideId || rideData._id;
+          console.log('[Home] 📍 Fetching ride details for ID:', rideIdToFetch);
+          getRideDetails(rideIdToFetch);
+          SetRideId(rideIdToFetch);
+          setAcceptRide(true);
+          
+          // Show notification
+          Alert.alert(
+            'New Ride Request',
+            'A user wants to book a ride near your location',
+            [
+              {
+                text: 'View Details',
+                onPress: () => {
+                  // Ride details already fetched above
+                },
+              },
+              {
+                text: 'Dismiss',
+                style: 'cancel',
+              },
+            ]
+          );
+        } else {
+          console.error('[Home] ❌ No ride ID found in ride request data');
+        }
+      });
+
+      // Listen if ride was accepted by another driver
+      socketInstance.on('ride:accepted_by_other', (data) => {
+        console.log('🚗 Ride accepted by another driver:', data);
+        
+        // Reset ride state
+        setAcceptRide(false);
+        setStatus(null); // Clear status properly
+        setRideAccepted(false);
+        setRideStarted(false);
+        showToast('Another driver has accepted this ride.');
+      });
+
+      // Listen for acceptance success
+      socketInstance.on('ride:accept:success', (data) => {
+        console.log('✅ Ride acceptance confirmed:', data);
+        
+        // Update ride details
+        if (data?.rideId || data?._id) {
+          const rideIdToFetch = data.rideId || data._id;
+          getRideDetails(rideIdToFetch);
+        }
+      });
+
+      // Listen for errors
+      socketInstance.on('ride:error', (error) => {
+        console.error('❌ Ride error:', error);
+        const errorMessage = error?.message || error?.error || 'An error occurred';
+        showToast(errorMessage);
+      });
+    };
+
+    const connectSocket = async () => {
+      try {
+        console.log('[Home] 🔌 ========== SOCKET CONNECTION SETUP ==========');
+        console.log('[Home] 📍 Driver ID:', driverUserId);
+        console.log('[Home] 📍 Base URL:', base_url);
+        console.log('[Home] 📍 Driver online status (switchh):', switchh);
+        
+        if (!driverUserId) {
+          console.error('[Home] ❌ Driver ID not available, skipping socket connection');
+          return;
+        }
+
+        // Connect socket
+        console.log('[Home] 🔌 Connecting socket...');
+        const socket = SocketService.connect(driverUserId, 'driver', base_url);
+        
+        if (socket) {
+          console.log('[Home] ✅ Socket instance created');
+          socketInitializedRef.current = true;
+          
+          // Set up listeners only once
+          if (socket.connected) {
+            setupSocketListeners(socket);
+          } else {
+            socket.once('connect', () => {
+              setupSocketListeners(socket);
+            });
+          }
+          
+          // IMPORTANT: Ensure driver is marked as online when socket connects
+          // According to documentation, driver must have flag: true to receive ride requests
+          if (switchh) {
+            console.log('[Home] 📍 Driver is already online (switchh: true)');
+            console.log('[Home] 📍 Driver should be able to receive ride requests');
+          } else {
+            console.warn('[Home] ⚠️ Driver is offline (switchh: false)');
+            console.warn('[Home] ⚠️ Driver will NOT receive ride requests until they go online');
+            console.warn('[Home] ⚠️ Please toggle the online/offline switch to go online');
+          }
+        } else {
+          console.error('[Home] ❌ Failed to create socket instance');
+        }
+        
+        console.log('[Home] ============================================');
+      } catch (error) {
+        console.error('[Home] ❌ Error connecting socket:', error);
+        console.error('[Home] Error details:', {
+          message: error?.message,
+          stack: error?.stack,
+          error: error,
+        });
+      }
+    };
+
+    connectSocket();
+
+    // Cleanup on unmount - only remove listeners, don't disconnect (socket is shared)
+    return () => {
+      console.log('[Home] 🧹 Cleaning up socket listeners...');
+      const socket = SocketService.getSocket();
+      if (socket) {
+        socket.off('ride:request');
+        socket.off('ride:accepted_by_other');
+        socket.off('ride:accept:success');
+        socket.off('ride:error');
+        socketListenersSetupRef.current = false;
+      }
+      // Don't disconnect - socket is shared across screens
+    };
+  }, []); // Empty dependency array - only run once on mount
+
+  // Function to send driver location via socket
+  const sendDriverLocation = useCallback(() => {
+    try {
+      // Check if we have valid coordinates
+      if (!currentLatitude || !currentLongitude) {
+        console.log('[Home] ⚠️ Cannot send location - coordinates not available');
+        return;
+      }
+
+      // Check if driver is online
+      if (!switchh) {
+        console.log('[Home] ⚠️ Cannot send location - driver is offline');
+        return;
+      }
+
+      // Check if socket is connected
+      const socket = SocketService.getSocket();
+      if (!socket || !SocketService.isSocketConnected()) {
+        console.log('[Home] ⚠️ Cannot send location - socket not connected');
+        return;
+      }
+
+      // Validate coordinates
+      if (
+        isNaN(currentLatitude) ||
+        isNaN(currentLongitude) ||
+        currentLatitude < -90 ||
+        currentLatitude > 90 ||
+        currentLongitude < -180 ||
+        currentLongitude > 180
+      ) {
+        console.error('[Home] ❌ Invalid coordinates, cannot send:', {
+          latitude: currentLatitude,
+          longitude: currentLongitude,
+        });
+        return;
+      }
+
+      // Prepare location data
+      // According to documentation: { userId: driverId, coordinates: [longitude, latitude] }
+      const locationData = {
+        userId: driverUserId || userId,
+        coordinates: [currentLongitude, currentLatitude], // GeoJSON format: [longitude, latitude]
+      };
+
+      console.log('[Home] 📍 ========== SENDING DRIVER LOCATION ==========');
+      console.log('[Home] 📍 Location data:', locationData);
+      console.log('[Home] 📍 Driver ID (userId):', driverUserId || userId);
+      console.log('[Home] 📍 Coordinates (GeoJSON):', locationData.coordinates);
+      console.log('[Home] 📍 Latitude:', currentLatitude);
+      console.log('[Home] 📍 Longitude:', currentLongitude);
+      console.log('[Home] 📍 Timestamp:', new Date().toISOString());
+      console.log('[Home] 📍 Socket connected:', socket.connected);
+      console.log('[Home] 📍 Socket ID:', socket.id);
+
+      // Emit location to socket
+      // Event name: 'drivercoordinates' (as per documentation)
+      socket.emit('drivercoordinates', locationData);
+      console.log('[Home] ✅ Location sent successfully via socket');
+      console.log('[Home] 📍 Event emitted: drivercoordinates');
+      console.log('[Home] ============================================');
+    } catch (error) {
+      console.error('[Home] ❌ Error sending driver location:', error);
+      console.error('[Home] Error details:', {
+        message: error?.message,
+        error: error,
+      });
+    }
+  }, [currentLatitude, currentLongitude, switchh, driverUserId, userId]);
+
+  // Set up interval to send location every 5 seconds
+  useEffect(() => {
+    console.log('[Home] 🔄 Setting up location update interval (every 5 seconds)');
+    console.log('[Home] 📍 Current state:', {
+      hasCoordinates: !!(currentLatitude && currentLongitude),
+      isOnline: switchh,
+      hasDriverId: !!(driverUserId || userId),
+      socketConnected: SocketService.isSocketConnected(),
+    });
+
+    // Clear any existing interval first
+    if (locationIntervalRef.current) {
+      console.log('[Home] 🧹 Clearing existing location interval');
+      clearInterval(locationIntervalRef.current);
+      locationIntervalRef.current = null;
+    }
+
+    // Only set up interval if driver is online and has coordinates
+    if (!switchh || !currentLatitude || !currentLongitude) {
+      console.log('[Home] ⚠️ Skipping location interval setup - driver offline or no coordinates');
+      return;
+    }
+
+    // Send location immediately
+    console.log('[Home] 📍 Sending initial location update');
+    sendDriverLocation();
+
+    // Set up interval to send location every 5 seconds (5000ms)
+    locationIntervalRef.current = setInterval(() => {
+      console.log('[Home] ⏰ Location update interval triggered (every 5 seconds)');
+      console.log('[Home] 📍 Interval count:', locationIntervalRef.current ? 'active' : 'inactive');
+      sendDriverLocation();
+    }, 5000);
+
+    console.log('[Home] ✅ Location update interval set up successfully');
+    console.log('[Home] 📍 Interval ID:', locationIntervalRef.current);
+
+    // Cleanup interval on unmount or when dependencies change
+    return () => {
+      console.log('[Home] 🧹 Cleaning up location update interval');
+      if (locationIntervalRef.current) {
+        clearInterval(locationIntervalRef.current);
+        locationIntervalRef.current = null;
+        console.log('[Home] ✅ Location interval cleared');
+      }
+    };
+  }, [switchh, currentLatitude, currentLongitude, sendDriverLocation, driverUserId, userId]);
+
   useEffect(() => {
     try {
-      socket.emit('joinRoom', userId);
-
       VehicleTypes();
       // reactNativeEasyPushNotifications.getDeviceId(id => {
       //   console.log('Id =-==========>', id);
@@ -1130,12 +1804,94 @@ const Home = props => {
     }
   }, []);
 
-  const [markerRegion, setmarkerRegion] = useState({
-    latitude: userDetail?.location?.coordinates?.[0] || 0,
-    longitude: userDetail?.location?.coordinates?.[1] || 0,
-    latitudeDelta: 0.0922,
-    longitudeDelta: 0.0421,
+  const [markerRegion, setmarkerRegion] = useState(() => {
+    // Initialize with valid coordinates or default to a valid location
+    const lat = userDetail?.location?.coordinates?.[0];
+    const lon = userDetail?.location?.coordinates?.[1];
+    
+    // Use default location if coordinates are invalid
+    const defaultLat = 24.8639148;
+    const defaultLon = 67.1672468;
+    
+    return {
+      latitude: (lat && !isNaN(lat) && lat !== 0) ? lat : defaultLat,
+      longitude: (lon && !isNaN(lon) && lon !== 0) ? lon : defaultLon,
+      latitudeDelta: 0.0922,
+      longitudeDelta: 0.0421,
+    };
   });
+  
+  // Update switch state when userDetail flag changes
+  useEffect(() => {
+    // Skip if user just toggled the switch (within last 3 seconds)
+    if (userToggledRef.current) {
+      const timeSinceToggle = Date.now() - toggleTimestampRef.current;
+      if (timeSinceToggle < 3000) {
+        console.log('[Home] ⏭️ Skipping useEffect sync - user just toggled switch');
+        return;
+      }
+    }
+    
+    console.log('[Home] 📍 useEffect - userDetail:', userDetail);
+    console.log('[Home] 📍 useEffect - userDetail.flag:', userDetail?.flag);
+    console.log('[Home] 📍 useEffect - userDetail.flag type:', typeof userDetail?.flag);
+    console.log('[Home] 📍 useEffect - Current switchh state:', switchh);
+    
+    // Check if userDetail exists and has flag property
+    if (userDetail && userDetail.hasOwnProperty('flag')) {
+      // Handle both boolean and string values
+      let flagValue = userDetail.flag;
+      
+      // Convert string "true"/"false" to boolean if needed
+      if (typeof flagValue === 'string') {
+        flagValue = flagValue.toLowerCase() === 'true';
+      } else if (typeof flagValue === 'boolean') {
+        // Already boolean, use as is
+        flagValue = flagValue;
+      } else {
+        // For any other type, convert to boolean
+        flagValue = Boolean(flagValue);
+      }
+      
+      console.log('[Home] 📍 Updating switch state from userDetail.flag:', userDetail.flag);
+      console.log('[Home] 📍 Original flag type:', typeof userDetail.flag);
+      console.log('[Home] 📍 Converted flag value:', flagValue);
+      console.log('[Home] 📍 Flag is boolean?', typeof flagValue === 'boolean');
+      console.log('[Home] 📍 Flag value (strict):', flagValue === true, flagValue === false);
+      console.log('[Home] 📍 Will show:', flagValue ? 'online' : 'Offline');
+      
+      // Set switch to match flag value (true = online, false = offline)
+      // Only update if it's different to avoid unnecessary re-renders
+      if (switchh !== flagValue) {
+        console.log('[Home] ✅ Setting switch to:', flagValue);
+        setSwitch(flagValue);
+      } else {
+        console.log('[Home] ⏭️ Switch already matches flag value, skipping update');
+      }
+    } else {
+      console.log('[Home] ⚠️ userDetail.flag is not available yet');
+      console.log('[Home] ⚠️ userDetail exists?', !!userDetail);
+      console.log('[Home] ⚠️ userDetail keys:', userDetail ? Object.keys(userDetail) : 'null');
+    }
+  }, [userDetail?.flag]);
+
+  // Update markerRegion when userDetail location changes
+  useEffect(() => {
+    if (userDetail?.location?.coordinates) {
+      const lat = userDetail.location.coordinates[0];
+      const lon = userDetail.location.coordinates[1];
+      
+      // Only update if coordinates are valid
+      if (lat && lon && !isNaN(lat) && !isNaN(lon) && lat !== 0 && lon !== 0) {
+        setmarkerRegion(prev => ({
+          ...prev,
+          latitude: lat,
+          longitude: lon,
+        }));
+      }
+    }
+  }, [userDetail?.location?.coordinates]);
+  
   console.log('markerRegion--markerRegion', markerRegion);
   const handleRating = a => {
     setRating(a);
@@ -1143,6 +1899,13 @@ const Home = props => {
 
   //Here ride flow
   const renderView = () => {
+    console.log('[Home] 🔍 renderView - Current state:', {
+      status,
+      rideAccepted,
+      rideStartered,
+      hasRideDetails: !!rideDetails,
+    });
+    
     //status == 'Pending'
     if (false) {
       return (
@@ -1151,6 +1914,7 @@ const Home = props => {
     }
     //status == 'Accepted' && Distance < 0.4
     else if (status == 'Accepted' && rideAccepted) {
+      console.log('[Home] ✅ Rendering TripStart component');
       return <View style={{flex: 1, alignItems: 'center'}}>{TripStart()}</View>;
     } else if (
       status == 'Started' ||
@@ -1158,19 +1922,24 @@ const Home = props => {
       status == 'Paused' ||
       status == 'Resumed'
     ) {
-      // if (Distance < 0.4) {
-      if (rideStartered) {
+      // Only show RideStarted view if ride is actually started and not completed
+      if (rideStartered && status !== 'Completed' && status !== 'Cancelled') {
+        console.log('[Home] ✅ Rendering RideStarted component');
         return (
           <View style={{flex: 1, alignItems: 'center'}}>{RideStarted()}</View>
         );
       }
-    } else {
-      return (
-        <View style={{position: 'absolute', left: vw * 5, top: vh * 2}}>
-          {homescreen()}
-        </View>
-      );
+      // If completed, fall through to show home screen
+      console.log('[Home] ⚠️ Ride started but not showing - rideStartered:', rideStartered, 'status:', status);
     }
+    
+    // Default: show home screen (also handles completed/cancelled rides)
+    console.log('[Home] 📍 Rendering home screen');
+    return (
+      <View style={{position: 'absolute', left: vw * 5, top: vh * 2}}>
+        {homescreen()}
+      </View>
+    );
   };
   //Here ride flow
   console.log(Distance, status, 'Distance status');
@@ -1185,83 +1954,145 @@ const Home = props => {
           ...markerRegion,
           ...region,
         }}>
-        {switchh && (
-          <Marker coordinate={{...markerRegion, ...region}} ref={markerRef}>
-            <Ripple
-              rippleColor="#5568FE"
-              rippleSize={10}
-              rippleDuration={400}
-              rippleSequential={true}>
-              <Image
-                source={icons.circle}
-                resizeMode="contain"
-                style={{height: vh * 5, width: vw * 5}}
-              />
-            </Ripple>
-          </Marker>
-        )}
+        {switchh && (() => {
+          // Validate marker coordinates before rendering
+          const markerCoords = {...markerRegion, ...region};
+          const isValidMarker = 
+            markerCoords.latitude && 
+            markerCoords.longitude && 
+            markerCoords.latitude !== 0 && 
+            markerCoords.longitude !== 0 &&
+            !isNaN(markerCoords.latitude) &&
+            !isNaN(markerCoords.longitude);
+          
+          if (!isValidMarker) {
+            return null;
+          }
+          
+          return (
+            <Marker coordinate={markerCoords} ref={markerRef}>
+              <Ripple
+                rippleColor="#5568FE"
+                rippleSize={10}
+                rippleDuration={400}
+                rippleSequential={true}>
+                <Image
+                  source={icons.circle}
+                  resizeMode="contain"
+                  style={{height: vh * 5, width: vw * 5}}
+                />
+              </Ripple>
+            </Marker>
+          );
+        })()}
 
-        {status && (
-          <MapViewDirections
-            ref={mapDirectionRef}
-            // origin={region}
-            origin={{latitude: 24.8639148, longitude: 67.1672468}}
-            destination={
-              status == 'Started'
-                ? {
-                    latitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates?.[1],
-                    longitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates?.[0],
-                  }
-                : {
-                    latitude: rideDetails?.ride?.pickuplocation?.coordinates?.[1],
-                    longitude:
-                      rideDetails?.ride?.pickuplocation?.coordinates?.[0],
-                  }
-            }
-            apikey={apikey}
-            mode="DRIVING"
-            strokeColor="black"
-            strokeWidth={4}
-            onReady={result => {
-              console.log(result, 'Distance in Map view');
-              setDistance(result.distance);
-            }}></MapViewDirections>
-        )}
-        {status && (
-          <Marker
-            coordinate={
-              status == 'Started' || status == 'Completed'
-                ? {
-                    latitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates?.[1],
-                    longitude:
-                      rideDetails?.ride?.dropofflocation?.coordinates?.[0],
-                  }
-                : {
-                    latitude: rideDetails?.ride?.pickuplocation?.coordinates?.[1],
-                    longitude:
-                      rideDetails?.ride?.pickuplocation?.coordinates?.[0],
-                  }
-            }>
-            <Ripple
-              rippleColor="#5568FE"
-              rippleSize={10}
-              rippleDuration={400}
-              rippleSequential={true}>
-              <Image
-                source={icons.circle}
-                resizeMode="contain"
-                style={{
-                  height: vh * 5,
-                  width: vw * 5,
-                  tintColor: theme.colors.primaryColor,
-                }}
-              />
-            </Ripple>
-          </Marker>
-        )}
+        {status && 
+         status !== 'Completed' && 
+         status !== 'Cancelled' && 
+         (() => {
+          // Validate coordinates before rendering MapViewDirections
+          const origin = currentLatitude && currentLongitude 
+            ? {latitude: currentLatitude, longitude: currentLongitude}
+            : {latitude: 24.8639148, longitude: 67.1672468};
+          
+          const destination = status == 'Started'
+            ? {
+                latitude: rideDetails?.ride?.dropofflocation?.coordinates?.[1],
+                longitude: rideDetails?.ride?.dropofflocation?.coordinates?.[0],
+              }
+            : {
+                latitude: rideDetails?.ride?.pickuplocation?.coordinates?.[1],
+                longitude: rideDetails?.ride?.pickuplocation?.coordinates?.[0],
+              };
+          
+          // Validate destination coordinates
+          const isValidDestination = 
+            destination.latitude && 
+            destination.longitude && 
+            !isNaN(destination.latitude) &&
+            !isNaN(destination.longitude) &&
+            destination.latitude !== 0 &&
+            destination.longitude !== 0;
+          
+          if (!isValidDestination) {
+            console.warn('[Home] ⚠️ Invalid destination coordinates, skipping MapViewDirections');
+            return null;
+          }
+          
+          return (
+            <MapViewDirections
+              ref={mapDirectionRef}
+              origin={origin}
+              destination={destination}
+              apikey={apikey}
+              mode="DRIVING"
+              strokeColor="black"
+              strokeWidth={4}
+              onReady={result => {
+                console.log(result, 'Distance in Map view');
+                if (result?.distance && !isNaN(result.distance)) {
+                  setDistance(result.distance);
+                }
+              }}
+              onError={(errorMessage) => {
+                console.warn('[Home] ⚠️ MapViewDirections Error:', errorMessage);
+                // Don't show error to user if it's a billing issue - just log it
+                if (errorMessage && errorMessage.includes('Billing')) {
+                  console.warn('[Home] ⚠️ Google Maps billing not enabled. Directions will not be displayed.');
+                }
+              }}
+            />
+          );
+        })()}
+        {status && 
+         status !== 'Completed' && 
+         status !== 'Cancelled' && 
+         (() => {
+          // Validate coordinates before rendering Marker
+          const markerCoords = status == 'Started'
+            ? {
+                latitude: rideDetails?.ride?.dropofflocation?.coordinates?.[1],
+                longitude: rideDetails?.ride?.dropofflocation?.coordinates?.[0],
+              }
+            : {
+                latitude: rideDetails?.ride?.pickuplocation?.coordinates?.[1],
+                longitude: rideDetails?.ride?.pickuplocation?.coordinates?.[0],
+              };
+          
+          // Validate marker coordinates
+          const isValidMarker = 
+            markerCoords.latitude && 
+            markerCoords.longitude && 
+            !isNaN(markerCoords.latitude) &&
+            !isNaN(markerCoords.longitude) &&
+            markerCoords.latitude !== 0 &&
+            markerCoords.longitude !== 0;
+          
+          if (!isValidMarker) {
+            console.warn('[Home] ⚠️ Invalid marker coordinates, skipping Marker render');
+            return null;
+          }
+          
+          return (
+            <Marker coordinate={markerCoords}>
+              <Ripple
+                rippleColor="#5568FE"
+                rippleSize={10}
+                rippleDuration={400}
+                rippleSequential={true}>
+                <Image
+                  source={icons.circle}
+                  resizeMode="contain"
+                  style={{
+                    height: vh * 5,
+                    width: vw * 5,
+                    tintColor: theme.colors.primaryColor,
+                  }}
+                />
+              </Ripple>
+            </Marker>
+          );
+        })()}
       </MapView>
 
       {renderView()}

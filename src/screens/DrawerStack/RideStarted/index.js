@@ -337,7 +337,6 @@ const RideStarted = props => {
           setMarkCompleted(true);
           modalRef4.current.show();
 
-          // amountReceivedRef.current.show();
         }}
         button2Text={'No'}
       />

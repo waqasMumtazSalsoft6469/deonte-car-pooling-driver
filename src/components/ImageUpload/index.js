@@ -50,7 +50,7 @@ const ImageUpload = props => {
                     source={
                       props?.imagePicker ? {uri: v?.uri || v?.path} : {uri: image_url + v}
                     }
-                    style={styles.certificateImage}
+                    style={[styles.certificateImage, props?.certificateImage]}
                   />
                 );
               }

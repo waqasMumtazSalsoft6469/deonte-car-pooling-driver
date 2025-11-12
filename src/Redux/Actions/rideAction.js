@@ -6,12 +6,25 @@ import actionTypes from './actionTypes';
 export const acceptRideAction = id => {
   return async dispatch => {
     dispatch({type: actionTypes.loaderOn});
+    console.log('Accept Ride Action id ====>', id);
+    console.log('Accept Ride Action id type ====>', typeof id);
+    console.log('Accept Ride Action id is truthy ====>', !!id);
+    
+    // Validate id before making API call
+    if (!id) {
+      const error = 'Ride ID is missing. Cannot accept ride without a valid ID.';
+      console.error('Accept Ride Action Error:', error);
+      dispatch({type: actionTypes.loaderOff});
+      return Promise.reject(error);
+    }
+    
     //   console.log('DATA from ContactUs', data);
     try {
       const response = await get(`${endpoints.ride.AcceptRide}/${id}`);
       dispatch({type: actionTypes.loaderOff});
       return Promise.resolve(response);
     } catch (e) {
+      console.error('Accept Ride Action API Error:', e);
       dispatch({type: actionTypes.loaderOff});
       return Promise.reject(e);
     }

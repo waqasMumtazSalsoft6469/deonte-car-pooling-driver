@@ -8,9 +8,12 @@ export const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.colors.white,
+        marginTop: vh * 10,
+    },
+    contentContainer: {
         alignItems: "center",
-        // justifyContent: "center",
-        paddingTop: vh * 12
+        paddingTop: vh * 8,
+        paddingBottom: vh * 4,
     },
     cardText: {
         paddingLeft: vw * 2,
@@ -25,11 +28,17 @@ export const styles = StyleSheet.create({
         fontSize: vh * 1.85
     },
     nameStyle: {
-        marginVertical: vh * 1,
-        letterSpacing: vh * 0.2
+        marginTop: vh * 1,
+        marginBottom: vh * 2,
+        fontSize: vh * 2.2,
+        fontWeight: "600",
+        letterSpacing: vh * 0.2,
+        color: theme.colors.black,
     },
     buttonStyle: {
-        height: vh * 5.7
+        height: vh * 5.7,
+        width: vw * 85,
+        marginTop: vh * 2,
     },
     cardContainer: {
         flexDirection: "row",
@@ -37,23 +46,26 @@ export const styles = StyleSheet.create({
         borderRadius: vh * 2,
         height: vh * 5.8,
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: "flex-start",
         width: vw * 85,
-        // marginVertical: vh*1,
-        marginTop: vh * 0.7,
-        // marginBottom: vh*2,
-        borderColor: theme.colors.greyInput
+        marginTop: vh * 1,
+        paddingHorizontal: vw * 4,
+        borderColor: theme.colors.greyInput,
+        backgroundColor: theme.colors.white,
+    },
+    ProfileImageContainer: {
+        alignItems: "center",
+        justifyContent: "center",
+        marginBottom: vh * 1.5,
     },
     profileImage: {
         height: vh * 18,
         width: vh * 18,
-        // borderWidth: vh * 1.6,
         borderWidth: vh * 1.3,
         borderColor: theme.colors.purple,
-        borderRadius: (vh * 18)/2,
-        marginBottom: vh * 1.1
-
-        // resizeMode: "contain"
+        borderRadius: (vh * 18) / 2,
+        backgroundColor: theme.colors.white,
+        resizeMode: "cover",
     },
     passwordLockIcon: {
         height: vh * 2,
@@ -68,10 +80,11 @@ export const styles = StyleSheet.create({
     },
     changePasswordContainer: {
         flexDirection: "row",
-        // marginVertical: vh*1,
-        marginTop: vh * 7,
-        marginBottom: vh * 1
-    }
+        alignItems: "center",
+        marginTop: vh * 4,
+        marginBottom: vh * 2,
+        paddingVertical: vh * 1,
+    },
 
     // ProfileImageContainer:{
     //     // height: vh*15,

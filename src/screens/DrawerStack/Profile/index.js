@@ -1,16 +1,11 @@
 import React, {useCallback, useState} from 'react';
-import {View, Text, Image, TouchableOpacity} from 'react-native';
+import {View, Image, TouchableOpacity, ScrollView} from 'react-native';
 import {icons, images} from '../../../assets';
 import {styles} from './styles';
 import GilroyMedium from '../../../components/Wrappers/Text/GilroyMedium';
 import Button from '../../../components/Button';
 import GilroyBold from '../../../components/Wrappers/Text/GilroyBold';
 import {useFocusEffect} from '@react-navigation/native';
-import {
-  getLocalizedString,
-  getLocale,
-  getTranslatedMessage,
-} from '../../../Translations';
 import {getProfile} from '../../../Redux/Actions/auth';
 import {useDispatch, useSelector} from 'react-redux';
 import {image_url} from '../../../Api/configs';
@@ -28,7 +23,6 @@ const Profile = ({navigation}) => {
   // console.log('Details ==>', deatils);
   const id = useSelector(state => state.UserReducer.userData._id);
   console.log('Id  ==>', id);
-  const [changePasswordModal, setChangePasswordModal] = useState(false);
   const getData = async () => {
     try {
       const response = await dispatch(getProfile(id));
@@ -42,23 +36,48 @@ const Profile = ({navigation}) => {
   useFocusEffect(
     useCallback(() => {
       getData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []),
   );
+  // Get user's full name or default
+  const fullName =
+    deatils?.firstName || deatils?.lastName
+      ? `${deatils?.firstName || ''} ${deatils?.lastName || ''}`.trim()
+      : 'User';
+
+  // Determine image source - separate URI from dummy image
+  const userImageUri = deatils?.userImage
+    ? image_url + deatils.userImage
+    : null;
+  const hasValidImage = userImageUri && userImageUri.trim() !== '';
+  
+  // Dummy/placeholder image - local asset
+  const dummyImageSource = images.userProfileImage;
+  
+  // Image source: use URI if valid, otherwise use dummy image
+  const imageSource = hasValidImage
+    ? {uri: userImageUri}
+    : dummyImageSource;
+
   return (
-    <View style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.contentContainer}
+      showsVerticalScrollIndicator={false}>
       <View style={styles.ProfileImageContainer}>
         <Image
-          source={{uri: image_url + deatils?.userImage}}
+          source={imageSource}
           style={styles.profileImage}
+          defaultSource={dummyImageSource}
+          onError={() => {
+            // If image fails to load, it will use defaultSource (dummy image)
+            console.log('Profile image failed to load, using dummy image');
+          }}
         />
-        {/* <Image source={{uri images.userImage}} style={styles.profileImage} /> */}
       </View>
-      <GilroyMedium style={styles.nameStyle}>
-        {deatils?.firstName + ' ' + deatils?.lastName}
-      </GilroyMedium>
-      <Card image={icons.mail} text={deatils?.email} />
-
-      <Card image={icons.phone} text={deatils?.phone} />
+      <GilroyMedium style={styles.nameStyle}>{fullName}</GilroyMedium>
+      {deatils?.email && <Card image={icons.mail} text={deatils.email} />}
+      {deatils?.phone && <Card image={icons.phone} text={deatils.phone} />}
       <TouchableOpacity
         style={styles.changePasswordContainer}
         onPress={() => navigation.navigate('ChangePassword')}>
@@ -71,9 +90,9 @@ const Profile = ({navigation}) => {
         text="Edit Profile"
         style={styles.buttonStyle}
         textStyle={styles.buttonText}
-        onPress={() => navigation.navigate('EditProfile', (data = {deatils}))}
+        onPress={() => navigation.navigate('EditProfile', {data: deatils})}
       />
-    </View>
+    </ScrollView>
   );
 };
 

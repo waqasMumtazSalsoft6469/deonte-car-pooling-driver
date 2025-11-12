@@ -62,8 +62,18 @@ export const endpoints = {
 // export const base_url = 'https://react.customdev.solutions:6065/';
 // export const local_url = 'http://10.0.2.52:6065/';
 
-export const base_url = 'http://50.60.71.133:6065/';
-export const local_url = 'http://10.0.2.2:6065/';
+// export const base_url = 'http://50.60.71.133:6065/';
+// export const local_url = 'http://10.0.2.2:6065/';
+
+// new base url for ngrok
+// export const base_url = 'https://zaria-perpetuable-giuseppe.ngrok-free.dev/';
+
+// new base url for 
+export const base_url = 'https://react.customdev.solutions:6066/';
+
+// dummy ngrok url
+// export const base_url = 'https://7c3a38c651f5.ngrok-free.app/';
+
 //Change the port of base_url because it give a ssl error!
 // export const base_url = 'https://react.customdev.solutions:6066/';
 // export const base_url = 'http://10.0.2.52:6065/';
@@ -78,8 +88,9 @@ export const geo_base =
   'https://maps.googleapis.com/maps/api/geocode/json?latlng=';
 // export const image_url = 'https://dev74.onlinetestingserver.com:6065/';
 
-export const image_url = 'https://react.customdev.solutions:6065/';
+// export const image_url = 'https://react.customdev.solutions:6065/';
+export const image_url = 'https://zaria-perpetuable-giuseppe.ngrok-free.dev/';
 // export const image_url = 'https://react.customdev.solutions:6066/';
 // export const image_url = 'http://10.0.2.52:6065/';
 
-export const apikey = 'AIzaSyB2hxNhJCBwaHoQ2eggJmLR4pfDYAN93cY';
+export const apikey = 'AIzaSyBECY2aNK5YkXshm_ZEqtZY0M_hcJT65Iw';

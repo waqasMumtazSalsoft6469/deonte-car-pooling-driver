@@ -31,7 +31,7 @@ const RegisterVehicle = props => {
   const [license, setLicense] = useState([]);
 
   // Helper function to convert content:// URIs to file:// paths
-  const convertToFileUri = async (uri) => {
+  const convertToFileUri = async (uri, originalFileName = '') => {
     try {
       // If it's already a file:// URI, return it
       if (uri && uri.startsWith('file://')) {
@@ -45,7 +45,17 @@ const RegisterVehicle = props => {
         const cacheDir = BlobUtil.fs.dirs.CacheDir;
         const timestamp = Date.now();
         const randomId = Math.random().toString(36).substring(7);
-        const filePath = `${cacheDir}/document_${timestamp}_${randomId}.tmp`;
+        
+        // Preserve file extension if available
+        let fileExtension = '.tmp';
+        if (originalFileName) {
+          const extMatch = originalFileName.match(/\.([a-zA-Z0-9]+)$/);
+          if (extMatch) {
+            fileExtension = '.' + extMatch[1].toLowerCase();
+          }
+        }
+        
+        const filePath = `${cacheDir}/document_${timestamp}_${randomId}${fileExtension}`;
         
         console.log('Target file path:', filePath);
         
@@ -65,7 +75,6 @@ const RegisterVehicle = props => {
           return fileUri;
         } catch (copyError) {
           console.log('BlobUtil.fs.copyFile failed, trying BlobUtil.config().fetch():', copyError);
-          console.log('Copy error details:', copyError.message, copyError.stack);
           
           try {
             // Method 2: Try using BlobUtil.config and fetch to download the content URI
@@ -88,7 +97,6 @@ const RegisterVehicle = props => {
             }
           } catch (fetchError) {
             console.log('BlobUtil.fetch also failed, trying BlobUtil.fs.readFile:', fetchError);
-            console.log('Fetch error details:', fetchError.message, fetchError.stack);
             
             try {
               // Method 3: Try using BlobUtil.fs.readFile directly
@@ -113,9 +121,9 @@ const RegisterVehicle = props => {
               console.log('Converted URI:', fileUri);
               return fileUri;
             } catch (readError) {
-              console.log('All methods failed:', readError);
-              console.log('Read error details:', readError.message, readError.stack);
-              throw readError;
+              console.log('All conversion methods failed, returning original URI:', readError);
+              // Return original URI instead of throwing - let it be handled by the caller
+              return uri;
             }
           }
         }
@@ -126,8 +134,7 @@ const RegisterVehicle = props => {
       return uri;
     } catch (error) {
       console.log('Error converting URI to file path:', error);
-      console.log('Error details:', error.message, error.stack);
-      // Return original URI on error
+      // Return original URI on error instead of throwing
       return uri;
     }
   };
@@ -140,7 +147,7 @@ const RegisterVehicle = props => {
   const [licensePlateNo, setLicensePlateNo] = useState('');
   const [vinNumber, setVinNumber] = useState('');
   const [vehicleTypes, setVehicleTypes] = useState([]);
-  const [VehicleTypeName, setVehicleTypeName] = useState('')
+  const [VehicleTypeName, setVehicleTypeName] = useState('');
 
   const brandNameRef = useRef(null);
   const vehicleNameRef = useRef(null);
@@ -152,15 +159,18 @@ const RegisterVehicle = props => {
     try {
       const response = await dispatch(getVehicleTypes());
       console.log('Response from Get Vehicle Types ==>', response);
-      // const tempData = [];
       const tempData = response?.vehicle?.map(val => {
         return { label: val?.name, value: val?.name, id: val?._id };
       });
       console.log('Response from Get Vehicle Types tempData ==>', tempData);
 
-      setVehicleTypes(tempData);
+      // Only update if we have valid data
+      if (tempData && tempData.length > 0) {
+        setVehicleTypes(tempData);
+      }
     } catch (err) {
       console.log('Error ==>', err);
+      // On error, vehicleTypes will remain empty
     }
   };
 
@@ -234,55 +244,194 @@ const RegisterVehicle = props => {
     if (licenseUri && licenseUri.startsWith('content://')) {
       console.log('Converting license URI from content:// to file://');
       try {
-        const convertedLicenseUri = await convertToFileUri(licenseUri);
+        const licenseFileName = license[0]?.name || license[0]?.filename || 'license';
+        const convertedLicenseUri = await convertToFileUri(licenseUri, licenseFileName);
         if (convertedLicenseUri && convertedLicenseUri.startsWith('file://')) {
           licenseUri = convertedLicenseUri;
           console.log('License URI after conversion:', licenseUri);
         } else {
-          console.error('License URI conversion failed - still content://:', convertedLicenseUri);
-          showToast('Failed to process license file. Please try again.', 'error');
-          return;
+          console.warn('License URI conversion may have failed - still content://:', convertedLicenseUri);
+          // Don't fail completely, try to proceed with original URI
+          licenseUri = convertedLicenseUri || licenseUri;
         }
       } catch (error) {
         console.error('Error converting license URI:', error);
-        showToast('Failed to process license file. Please try again.', 'error');
-        return;
+        // Don't fail completely, use original URI
+        licenseUri = licenseUri;
       }
     }
     
     if (documentUri && documentUri.startsWith('content://')) {
       console.log('Converting document URI from content:// to file://');
       try {
-        const convertedDocumentUri = await convertToFileUri(documentUri);
+        const documentFileName = document[0]?.name || document[0]?.filename || 'document';
+        const convertedDocumentUri = await convertToFileUri(documentUri, documentFileName);
         if (convertedDocumentUri && convertedDocumentUri.startsWith('file://')) {
           documentUri = convertedDocumentUri;
           console.log('Document URI after conversion:', documentUri);
         } else {
-          console.error('Document URI conversion failed - still content://:', convertedDocumentUri);
-          showToast('Failed to process document file. Please try again.', 'error');
-          return;
+          console.warn('Document URI conversion may have failed - still content://:', convertedDocumentUri);
+          // Don't fail completely, try to proceed with original URI
+          documentUri = convertedDocumentUri || documentUri;
         }
       } catch (error) {
         console.error('Error converting document URI:', error);
-        showToast('Failed to process document file. Please try again.', 'error');
-        return;
+        // Don't fail completely, use original URI
+        documentUri = documentUri;
       }
     }
     
-    // Build the image objects with converted URIs
-    const license_Image = {
-      uri: licenseUri, // Should be file:// path now
-      type: license[0]?.type || license[0]?.mimeType || 'application/pdf',
-      name: license[0]?.name || license[0]?.filename || 'license.pdf',
-    };
-    const document_Image = {
-      uri: documentUri, // Should be file:// path now
-      type: document[0]?.type || document[0]?.mimeType || 'application/pdf',
-      name: document[0]?.name || document[0]?.filename || 'document.pdf',
+    // Verify files exist and are accessible
+    if (licenseUri && licenseUri.startsWith('file://')) {
+      const filePath = licenseUri.replace('file://', '');
+      try {
+        const exists = await BlobUtil.fs.exists(filePath);
+        if (!exists) {
+          console.error('License file does not exist at path:', filePath);
+          showToast('License file not found. Please upload again.', 'error');
+          return;
+        }
+        // Try to get file stats to verify it's readable
+        try {
+          const stat = await BlobUtil.fs.stat(filePath);
+          console.log('License file stats:', { size: stat.size, path: filePath });
+          if (stat.size === 0) {
+            console.error('License file is empty');
+            showToast('License file is empty. Please upload again.', 'error');
+            return;
+          }
+        } catch (statError) {
+          console.error('Error getting license file stats:', statError);
+        }
+      } catch (checkError) {
+        console.error('Error checking license file:', checkError);
+        showToast('Error verifying license file. Please upload again.', 'error');
+        return;
+      }
+    } else if (licenseUri && licenseUri.startsWith('content://')) {
+      console.warn('License URI is still content://, may cause issues:', licenseUri);
+      // Try to convert one more time
+      try {
+        const fileName = license[0]?.name || license[0]?.filename || 'license';
+        const converted = await convertToFileUri(licenseUri, fileName);
+        if (converted && converted.startsWith('file://')) {
+          licenseUri = converted;
+          console.log('Converted license URI to file://:', licenseUri);
+        }
+      } catch (convertError) {
+        console.error('Failed to convert license URI:', convertError);
+      }
+    }
+    
+    if (documentUri && documentUri.startsWith('file://')) {
+      const filePath = documentUri.replace('file://', '');
+      try {
+        const exists = await BlobUtil.fs.exists(filePath);
+        if (!exists) {
+          console.error('Document file does not exist at path:', filePath);
+          showToast('Document file not found. Please upload again.', 'error');
+          return;
+        }
+        // Try to get file stats to verify it's readable
+        try {
+          const stat = await BlobUtil.fs.stat(filePath);
+          console.log('Document file stats:', { size: stat.size, path: filePath });
+          if (stat.size === 0) {
+            console.error('Document file is empty');
+            showToast('Document file is empty. Please upload again.', 'error');
+            return;
+          }
+        } catch (statError) {
+          console.error('Error getting document file stats:', statError);
+        }
+      } catch (checkError) {
+        console.error('Error checking document file:', checkError);
+        showToast('Error verifying document file. Please upload again.', 'error');
+        return;
+      }
+    } else if (documentUri && documentUri.startsWith('content://')) {
+      console.warn('Document URI is still content://, may cause issues:', documentUri);
+      // Try to convert one more time
+      try {
+        const fileName = document[0]?.name || document[0]?.filename || 'document';
+        const converted = await convertToFileUri(documentUri, fileName);
+        if (converted && converted.startsWith('file://')) {
+          documentUri = converted;
+          console.log('Converted document URI to file://:', documentUri);
+        }
+      } catch (convertError) {
+        console.error('Failed to convert document URI:', convertError);
+      }
+    }
+    
+    // Determine MIME type based on file extension
+    const getMimeType = (uri, name, defaultType) => {
+      const fileName = name || uri || '';
+      const lowerName = fileName.toLowerCase();
+      
+      // Image types
+      if (lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg')) {
+        return 'image/jpeg';
+      }
+      if (lowerName.endsWith('.png')) {
+        return 'image/png';
+      }
+      if (lowerName.endsWith('.gif')) {
+        return 'image/gif';
+      }
+      if (lowerName.endsWith('.webp')) {
+        return 'image/webp';
+      }
+      // PDF
+      if (lowerName.endsWith('.pdf')) {
+        return 'application/pdf';
+      }
+      
+      // Use provided type or default
+      return defaultType || 'application/octet-stream';
     };
     
-    console.log('License Image formatted:', JSON.stringify(license_Image, null, 2));
-    console.log('Document Image formatted:', JSON.stringify(document_Image, null, 2));
+    // Build the image objects with converted URIs
+    const licenseFileName = license[0]?.name || license[0]?.filename || 'license';
+    const licenseMimeType = getMimeType(
+      licenseUri,
+      licenseFileName,
+      license[0]?.type || license[0]?.mimeType
+    );
+    
+    const license_Image = {
+      uri: licenseUri, // Should be file:// path now
+      type: licenseMimeType,
+      name: licenseFileName,
+    };
+    
+    const documentFileName = document[0]?.name || document[0]?.filename || 'document';
+    const documentMimeType = getMimeType(
+      documentUri,
+      documentFileName,
+      document[0]?.type || document[0]?.mimeType
+    );
+    
+    const document_Image = {
+      uri: documentUri, // Should be file:// path now
+      type: documentMimeType,
+      name: documentFileName,
+    };
+    
+    console.log('License Image formatted:', {
+      uri: license_Image.uri,
+      type: license_Image.type,
+      name: license_Image.name,
+    });
+    console.log('Document Image formatted:', {
+      uri: document_Image.uri,
+      type: document_Image.type,
+      name: document_Image.name,
+    });
+    
+    // Build body with correct field names
+    // Based on your example, both files should be doc_schedule
+    // We'll send them as an array so FormData can append them multiple times
     const body = {
       vehicletype: vehicleType,
       brandname: brandName,
@@ -290,19 +439,79 @@ const RegisterVehicle = props => {
       vehiclecolor: vehicleColor,
       licenseNo: licensePlateNo,
       VinNo: vinNumber,
-      license_plate: license_Image,
-      doc_schedule: document_Image,
+      // Send both files as doc_schedule - FormData will handle multiple files with same key
+      doc_schedule: [license_Image, document_Image],
     };
+
+    console.log('Sending registration body:', {
+      vehicletype: body.vehicletype,
+      brandname: body.brandname,
+      vehiclename: body.vehiclename,
+      vehiclecolor: body.vehiclecolor,
+      licenseNo: body.licenseNo,
+      VinNo: body.VinNo,
+      license_plate: { uri: license_Image.uri, type: license_Image.type, name: license_Image.name },
+      doc_schedule: { uri: document_Image.uri, type: document_Image.type, name: document_Image.name },
+    });
 
     try {
       const response = await dispatch(vehicleRegister(body));
-      console.log('Response from LogoutHandler ==>', response);
-      showToast(response?.message);
+      console.log('Response from vehicleRegister ==>', response);
+      if (response?.message) {
+        showToast(response.message, 'success');
+      }
       props.navigation.goBack();
     } catch (err) {
-      alert(err);
+      console.error('Error from handleRegistration ==>', err);
+      console.error('Error type:', typeof err);
+      
+      // Extract error message from different error formats
+      let errorMessage = 'Failed to register vehicle. Please try again.';
+      
+      if (typeof err === 'string') {
+        errorMessage = err;
+        console.error('Error is a string:', err);
+      } else if (err && typeof err === 'object') {
+        console.error('Error keys:', Object.keys(err));
+        
+        // Check for responseText first (most useful)
+        if (err.responseText || err.fullResponse) {
+          const responseText = err.responseText || err.fullResponse || '';
+          console.error('Server response text:', responseText);
+          // Try to extract meaningful error message from HTML/text response
+          if (responseText.length > 0) {
+            // Show first 500 chars of server response
+            const shortResponse = responseText.substring(0, 500);
+            errorMessage = `Server Error: ${shortResponse}`;
+            // If it looks like HTML, try to extract text content
+            if (responseText.includes('<html') || responseText.includes('<!DOCTYPE')) {
+              // Try to extract text between tags
+              const textMatch = responseText.match(/<body[^>]*>([\s\S]*?)<\/body>/i) || 
+                               responseText.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+              if (textMatch && textMatch[1]) {
+                const cleanText = textMatch[1].replace(/<[^>]+>/g, '').trim();
+                if (cleanText) {
+                  errorMessage = `Server Error: ${cleanText.substring(0, 200)}`;
+                }
+              }
+            }
+          }
+        } else if (err.message) {
+          errorMessage = err.message;
+          // If it's the non-JSON response error, try to get more info
+          if (err.message.includes('non-JSON response') && err.status) {
+            errorMessage = `Server Error (Status ${err.status}): The server encountered an error. Check console for details.`;
+          }
+        } else if (err.status) {
+          errorMessage = `Server error (Status: ${err.status}). Please check your files and try again.`;
+        }
+      }
+      
+      // Log full error for debugging
+      console.error('Full error object:', err);
+      
+      showToast(errorMessage, 'error');
     }
-    console.log('Body ===>', body);
   };
   const handleOnSuccess = () => {
     console.log('Success');
@@ -348,33 +557,34 @@ const RegisterVehicle = props => {
             console.log('License file response:', JSON.stringify(file, null, 2));
             // Get the original URI (fileCopyUri is preferred, fallback to uri or path)
             const originalUri = file.fileCopyUri || file.uri || file.path;
+            const fileName = file.name || file.filename || 'license';
             console.log('License file original URI:', originalUri);
             
             // Convert content:// URI to file:// path if needed
             let fileUri = originalUri;
             if (originalUri && originalUri.startsWith('content://')) {
               try {
-                fileUri = await convertToFileUri(originalUri);
+                fileUri = await convertToFileUri(originalUri, fileName);
                 console.log('License file converted URI:', fileUri);
                 
-                // Verify conversion was successful
-                if (!fileUri || !fileUri.startsWith('file://')) {
-                  console.error('License URI conversion failed - still content://:', fileUri);
-                  showToast('Failed to process license file. Please try again.', 'error');
-                  throw new Error('Failed to convert content URI to file URI');
+                // Even if conversion didn't produce file://, still try to use it
+                // The API might handle content:// URIs, or we can try again later
+                if (!fileUri || (!fileUri.startsWith('file://') && !fileUri.startsWith('content://'))) {
+                  console.warn('License URI conversion may have failed:', fileUri);
+                  // Don't throw error, just warn and continue
                 }
               } catch (error) {
                 console.error('Error converting license URI:', error);
-                showToast('Failed to process license file. Please try again.', 'error');
-                throw error;
+                // Don't throw, use original URI and let it be handled later
+                fileUri = originalUri;
               }
             }
             
             return {
-              uri: fileUri, // Use converted file:// path
-              path: fileUri, // Use converted file:// path
+              uri: fileUri, // Use converted file:// path or original
+              path: fileUri, // Use converted file:// path or original
               type: file.mimeType || file.type || 'application/pdf',
-              name: file.name || file.filename || 'license.pdf',
+              name: fileName,
               size: file.size || 0,
               fileCopyUri: fileUri, // Store converted URI for FormData
             };
@@ -410,33 +620,34 @@ const RegisterVehicle = props => {
             console.log('Document file response:', JSON.stringify(file, null, 2));
             // Get the original URI (fileCopyUri is preferred, fallback to uri or path)
             const originalUri = file.fileCopyUri || file.uri || file.path;
+            const fileName = file.name || file.filename || 'document';
             console.log('Document file original URI:', originalUri);
             
             // Convert content:// URI to file:// path if needed
             let fileUri = originalUri;
             if (originalUri && originalUri.startsWith('content://')) {
               try {
-                fileUri = await convertToFileUri(originalUri);
+                fileUri = await convertToFileUri(originalUri, fileName);
                 console.log('Document file converted URI:', fileUri);
                 
-                // Verify conversion was successful
-                if (!fileUri || !fileUri.startsWith('file://')) {
-                  console.error('Document URI conversion failed - still content://:', fileUri);
-                  showToast('Failed to process document file. Please try again.', 'error');
-                  throw new Error('Failed to convert content URI to file URI');
+                // Even if conversion didn't produce file://, still try to use it
+                // The API might handle content:// URIs, or we can try again later
+                if (!fileUri || (!fileUri.startsWith('file://') && !fileUri.startsWith('content://'))) {
+                  console.warn('Document URI conversion may have failed:', fileUri);
+                  // Don't throw error, just warn and continue
                 }
               } catch (error) {
                 console.error('Error converting document URI:', error);
-                showToast('Failed to process document file. Please try again.', 'error');
-                throw error;
+                // Don't throw, use original URI and let it be handled later
+                fileUri = originalUri;
               }
             }
             
             return {
-              uri: fileUri, // Use converted file:// path
-              path: fileUri, // Use converted file:// path
+              uri: fileUri, // Use converted file:// path or original
+              path: fileUri, // Use converted file:// path or original
               type: file.mimeType || file.type || 'application/pdf',
-              name: file.name || file.filename || 'document.pdf',
+              name: fileName,
               size: file.size || 0,
               fileCopyUri: fileUri, // Store converted URI for FormData
             };
@@ -458,22 +669,31 @@ const RegisterVehicle = props => {
   const registerPopup = useRef();
   const DropDownRefHobby = useRef();
   const showHobbyPicker = () => {
-    if (DropDownRefHobby) {
+    if (DropDownRefHobby.current) {
+      // Only show modal if we have API data
+      if (!vehicleTypes || vehicleTypes.length === 0) {
+        showToast('Vehicle types are loading. Please wait...', 'error');
+        return;
+      }
+      
       DropDownRefHobby.current.show(
         'label',
         vehicleTypes,
-        'Select Category',
+        'Select Vehicle Type',
         data => {
-          console.log("Response from Get Vehicle Types data", data);
+          if (!data || !data.id) {
+            return;
+          }
+          console.log('Response from Get Vehicle Types data', data);
           setVehicleType(data.id);
           setVehicleTypeName(data.value);
-          // tmp = [...vehicleType]
-          // tmp.push(data)
-          // setVehicleType(tmp)
         },
         null,
         null,
       );
+    } else {
+      console.error('DropDownRefHobby.current is null');
+      showToast('Unable to open vehicle type selector', 'error');
     }
   };
 
@@ -530,6 +750,7 @@ const RegisterVehicle = props => {
         placeholder="License Plate No"
         onChangeText={text => setLicensePlateNo(text)}
       />
+      <Text style={styles.licenseImageText}>License Image</Text>
       {/* <ImageUpload title="Upload License" description="PDF, JPG (max 3MB)" />
       <ImagePicker /> */}
       <ImageUpload
@@ -538,6 +759,10 @@ const RegisterVehicle = props => {
         image={license}
         setImage={setLicense}
         onPress={ImagePick}
+        imagePicker={true}
+        certificateImage={{ height: '100%', width: '100%', borderRadius: vh * 2 }}
+        uploadBoxStyle={{}}
+        imageContainer={{ height: '90%', width: '90%' }}
       />
       <Button
         style={styles.buttonStyle}
@@ -566,6 +791,7 @@ const RegisterVehicle = props => {
         image={document}
         setImage={setDocuments}
         onPress={ImagePickDocument}
+        imagePicker={true}
         certificateImage={{ height: '100%', width: '100%', borderRadius: vh * 2 }}
         uploadBoxStyle={{}}
         imageContainer={{ height: '90%', width: '90%' }}

@@ -95,4 +95,11 @@ export const styles = StyleSheet.create({
     width: 4.2 * vw,
     tintColor: theme.colors.white,
   },
+  licenseImageText: {
+    fontSize: vh * 1.7,
+    color: theme.colors.textBlack,
+    marginTop: vh * 2,
+    marginBottom: vh * 1,
+    paddingLeft: vw * 4,
+  },
 });

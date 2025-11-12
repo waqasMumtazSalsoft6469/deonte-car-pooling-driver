@@ -21,7 +21,13 @@ export const post = async (endpoint, body, formData = false, queryParams) => {
 
     return Promise.resolve(result);
   } catch (e) {
-    console.log('e == ', e);
+    console.log('API Error:', e);
+    // Preserve error object if it has useful properties (status, responseText)
+    if (e && typeof e === 'object' && (e.status || e.responseText)) {
+      console.log('Error details - Status:', e.status, 'Response:', e.responseText);
+      return Promise.reject(e);
+    }
+    // Otherwise convert to message string
     const message = getMessage(e);
     return Promise.reject(message);
   }

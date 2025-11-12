@@ -159,7 +159,7 @@ const RatingAndReviews = props => {
         backgroundColor: 'white',
         alignItems: 'center',
         paddingTop: vh * 5,
-        marginTop: vh * 2,
+        marginTop: vh * 10,
       }}>
       <FlatList
         showsVerticalScrollIndicator={false}

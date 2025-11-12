@@ -7,15 +7,25 @@ export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.white,
+  },
+  contentContainer: {
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingTop: vh * 3,
+    paddingBottom: vh * 4,
   },
   VehicleTypecontainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
     width: vw * 86,
-    paddingBottom: vh * 3,
-    marginTop: vh
+    paddingBottom: vh * 2,
+    marginTop: vh * 2,
+    paddingHorizontal: vw * 2,
+  },
+  fieldContainer: {
+    flex: 1,
+    maxWidth: '48%',
+    alignItems: 'flex-start',
   },
   registerButton: {
     borderBottomRightRadius: vh * 2,
@@ -29,28 +39,52 @@ export const styles = StyleSheet.create({
   },
   certificateImage: {
     borderRadius: vh * 2,
-    height: vh * 12,
+    height: vh * 20,
     width: vw * 35,
     resizeMode: 'cover',
-  },
-  brandContainer: {
-    paddingRight: vw * 19,
-  },
-  colorContainer: {
-    paddingRight: vw * 17,
+    backgroundColor: theme.colors.greyInput,
   },
   vehicleValue: {
     fontSize: vh * 1.9,
-    width: vw * 30
+    marginTop: vh * 0.5,
+    flexShrink: 1,
   },
   certificateImageContainer: {
-    ...appShadow,
+    // ...appShadow,
     flexDirection: 'row',
     justifyContent: 'space-around',
+    alignItems: 'flex-start',
+    paddingVertical: vh * 2,
+    paddingHorizontal: vw * 2,
+    borderRadius: vh * 2,
+    marginTop: vh * 2,
+  },
+  documentItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: vw * 2,
+  },
+  documentLabel: {
+    fontSize: vh * 1.6,
+    color: theme.colors.black,
+    marginBottom: vh * 1,
+    textAlign: 'center',
+  },
+  pdfContainer: {
+    // ...appShadow,
+    borderRadius: vh * 2,
+    overflow: 'hidden',
+    backgroundColor: theme.colors.white,
+  },
+  pdfStyle: {
+    height: vh * 20,
+    width: vw * 35,
+    borderRadius: vh * 2,
   },
   yesBtnStyle: {
-    marginTop: vh * 5,
+    marginTop: vh * 3,
     marginVertical: vh * 0.5,
+    width: vw * 85,
   },
   title: {
     textAlign: 'center',
@@ -59,7 +93,8 @@ export const styles = StyleSheet.create({
   },
   noBtnStyle: {
     backgroundColor: theme.colors.white,
-    marginVertical: 0,
+    marginVertical: vh * 1,
+    width: vw * 85,
   },
   noBtnText: {
     paddingLeft: vw * 3,
@@ -92,8 +127,9 @@ export const styles = StyleSheet.create({
     //   backgroundColor: "red"
   },
   documentContainer: {
-    height: vh * 30,
     width: vw * 86,
+    marginTop: vh * 3,
+    marginBottom: vh * 2,
   },
   text2style: {
     width: vw * 80,
@@ -108,5 +144,12 @@ export const styles = StyleSheet.create({
     fontSize: vh * 1.9,
     color: theme.colors.placeholder,
     marginBottom: vh * 1,
-  }
+  },
+  buttonStyle: {
+    width: vw * 85,
+    marginTop: vh * 2,
+  },
+  buttonText: {
+    fontSize: vh * 1.85,
+  },
 });

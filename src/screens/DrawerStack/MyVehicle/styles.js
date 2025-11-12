@@ -22,9 +22,13 @@ export const styles = StyleSheet.create({
     },
     buttonStyle: {
         marginTop: vh * 2.5,
-        height: vh * 6.1
+        height: vh * 6.1,
+        backgroundColor: theme.colors.white
     },
     buttonText: {
-        fontSize: vh * 2
+        fontSize: vh * 2,
+        color: theme.colors.primaryColor,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
     }
 })

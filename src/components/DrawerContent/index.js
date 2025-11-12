@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { Image, View } from 'react-native';
 import MontserratMedium from '../Wrappers/Text/GilroyMedium';
 
@@ -12,34 +12,53 @@ import { useDispatch, useSelector } from 'react-redux';
 import { image_url } from '../../Api/configs';
 import { icons, images } from '../../assets';
 import GeneralModal from '../../popups/GeneralModal';
-import { logout } from '../../Redux/Actions/auth';
+import { logout, getProfile } from '../../Redux/Actions/auth';
 import vh from '../../utils/units/vh';
 import Ripple from '../Wrappers/Ripple';
 import GilroyMedium from '../Wrappers/Text/GilroyMedium';
 import GilroyRegular from '../Wrappers/Text/GilroyRegular';
 import styles from './styles';
 const DrawerContent = props => {
-  const userDetail = useSelector(state => state.UserReducer.userData);
-
-  console.log('USer Details from drawer======>', userDetail);
-  const sv = useSharedValue(0);
-  const isDrawerOpen = useDrawerStatus();
-  const [logOutPopup, setLogoutPopup] = useState(false);
-  // const [visibility, setVisibility] = useState(false)
-  const modalRef = useRef();
-
+  const dispatch = useDispatch();
   const navigation = useNavigation();
   const progress = useDrawerProgress();
-  // console.log("animate",Animated);
-  const dispatch = useDispatch();
-  // const logoutfun = () => {
-  //   dispatch(
-  //     logout().then(res => {
-  //       console.log('Logout ====>', res);
-  //     }),
-  //   );
-  //   // setVisibility(false);
-  // };
+  const sv = useSharedValue(0);
+  const isDrawerOpen = useDrawerStatus();
+  const modalRef = useRef();
+  
+  const userDetail = useSelector(state => state.UserReducer.userData);
+  const profileData = useSelector(state => state.UserReducer.profile);
+  const [driverProfile, setDriverProfile] = useState(null);
+  const [logOutPopup, setLogOutPopup] = useState(false);
+
+  console.log('User Details from drawer======>', userDetail);
+  console.log('Profile Data from drawer======>', profileData);
+
+  // Fetch profile data when drawer opens
+  const fetchProfile = useCallback(async () => {
+    if (userDetail?._id) {
+      try {
+        const response = await dispatch(getProfile(userDetail._id));
+        // The response structure might be { driver: {...} } or { data: { driver: {...} } }
+        if (response?.driver) {
+          setDriverProfile(response.driver);
+        } else if (response?.data?.driver) {
+          setDriverProfile(response.data.driver);
+        }
+      } catch (err) {
+        console.log('Error fetching profile in drawer:', err);
+      }
+    }
+  }, [dispatch, userDetail?._id]);
+
+  // Fetch profile when drawer opens
+  useEffect(() => {
+    if (isDrawerOpen === 'open') {
+      fetchProfile();
+    }
+  }, [isDrawerOpen, fetchProfile]);
+
+  // Animation effect for drawer
   useEffect(() => {
     if (isDrawerOpen === 'open') {
       sv.value = withTiming(progress.value);
@@ -120,17 +139,46 @@ const DrawerContent = props => {
             justifyContent: 'center',
             borderRadius: (vh * 6) / 2,
           }}>
-          <Image
-            style={styles.image}
-            source={
-              userDetail?.userImage
-                ? { uri: image_url + userDetail?.userImage }
-                : images.driverImage
-            }
-          />
+          {/* Use profile data if available, otherwise fallback to userData */}
+          {(() => {
+            // Priority: driverProfile (fetched) > profileData.driver (from Redux) > profileData (from Redux) > userDetail
+            const profile = driverProfile || profileData?.driver || profileData || userDetail;
+            const userImageUri = profile?.userImage
+              ? image_url + profile.userImage
+              : null;
+            const hasValidImage = userImageUri && userImageUri.trim() !== '';
+            
+            // Dummy/placeholder image - local asset
+            const dummyImageSource = images.userProfileImage;
+            
+            // Image source: use URI if valid, otherwise use dummy image
+            const imageSource = hasValidImage
+              ? {uri: userImageUri}
+              : dummyImageSource;
+            
+            return (
+              <Image
+                style={styles.image}
+                source={imageSource}
+                defaultSource={dummyImageSource}
+                onError={() => {
+                  console.log('Drawer profile image failed to load, using dummy image');
+                }}
+              />
+            );
+          })()}
         </View>
         <GilroyMedium style={styles.mark}>
-          Hi, {userDetail?.firstName || 'Driver'}
+          {(() => {
+            // Priority: driverProfile (fetched) > profileData.driver (from Redux) > profileData (from Redux) > userDetail
+            const profile = driverProfile || profileData?.driver || profileData || userDetail;
+            const firstName = profile?.firstName || '';
+            const lastName = profile?.lastName || '';
+            const fullName = firstName || lastName
+              ? `${firstName} ${lastName}`.trim()
+              : 'Driver';
+            return `Hi, ${fullName}`;
+          })()}
         </GilroyMedium>
       </View>
       {/* </Animated.View> */}
