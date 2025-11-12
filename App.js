@@ -16,7 +16,6 @@ import SplashScreen from 'react-native-splash-screen';
 // import AnimatedSplash from 'react-native-animated-splash';
 
 const {BackgroundLocation} = NativeModules;
-
 const App = () => {
   useEffect(() => {
     setTimeout(() => {
