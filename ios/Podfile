@@ -44,5 +44,14 @@ target 'DeonteDriver' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+    
+    # Fix for non-public selector warnings (_isKeyDown, _modifiedInput, _modifierFlags)
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Strip local symbols to remove private selector references
+        config.build_settings['STRIP_STYLE'] = 'non-global'
+        config.build_settings['STRIP_INSTALLED_PRODUCT'] = 'YES'
+      end
+    end
   end
 end

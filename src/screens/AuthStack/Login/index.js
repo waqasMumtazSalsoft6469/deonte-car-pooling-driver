@@ -66,6 +66,7 @@ const Login = props => {
     console.log('boydddd', body);
     try {
       const response = await dispatch(login(body));
+      console.log('response--->', response);  
       if (response?.token) {
         props.navigation.navigate('DrawerNavigator');
       } else {
