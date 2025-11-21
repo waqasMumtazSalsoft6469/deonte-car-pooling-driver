@@ -211,7 +211,19 @@ const PickDropLocation = data => {
                     data?.data?.totalBill ||
                     data?.data?.ride?.totalbill ||
                     data?.data?.ride?.totalBill ||
+                    data?.ride?.totalbill ||
+                    data?.ride?.totalBill ||
+                    data?.totalbill ||
+                    data?.totalBill ||
                     0;
+  
+  console.log('[PickDropLocation] 💰 Price extraction:', {
+    'rideData?.totalbill': rideData?.totalbill,
+    'rideData?.totalBill': rideData?.totalBill,
+    'data?.ride?.totalbill': data?.ride?.totalbill,
+    'data?.ride?.totalBill': data?.ride?.totalBill,
+    'final totalBill': totalBill
+  });
   
   // Format date and time safely
   const formattedDate = date && !isNaN(date.getTime()) ? date.toLocaleDateString() : 'N/A';

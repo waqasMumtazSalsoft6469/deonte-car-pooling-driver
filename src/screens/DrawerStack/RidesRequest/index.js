@@ -168,10 +168,23 @@ const RidesRequest = () => {
       }
       
       // Also call the API action (keeping existing functionality)
-      console.log('[RidesRequest] Calling API acceptRideAction with ID:', rideId);
+      console.log('[RidesRequest] 📡 ========== CALLING API acceptRideAction ==========');
+      console.log('[RidesRequest] 📡 Ride ID for API:', rideId);
+      console.log('[RidesRequest] 📡 Timestamp:', new Date().toISOString());
+      
       const response = await dispatch(acceptRideAction(rideId));
-      console.log('[RidesRequest] API response:', response);
-      showToast(response?.message);
+      
+      console.log('[RidesRequest] 📡 ========== API RESPONSE RECEIVED ==========');
+      console.log('[RidesRequest] 📡 Full API Response:', JSON.stringify(response, null, 2));
+      console.log('[RidesRequest] 📡 Response type:', typeof response);
+      console.log('[RidesRequest] 📡 Response keys:', response ? Object.keys(response) : 'null');
+      console.log('[RidesRequest] 📡 response.message:', response?.message);
+      console.log('[RidesRequest] 📡 response.ride:', response?.ride);
+      console.log('[RidesRequest] 📡 response.ride?._id:', response?.ride?._id);
+      console.log('[RidesRequest] 📡 response.ride?.rideStatus:', response?.ride?.rideStatus);
+      console.log('[RidesRequest] ===========================================');
+      
+      showToast(response?.message || 'Ride accepted');
       
       // Note: Navigation will be handled by 'ride:accept:success' socket listener
     } catch (err) {

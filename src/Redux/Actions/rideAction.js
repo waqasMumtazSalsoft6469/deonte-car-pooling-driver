@@ -6,25 +6,44 @@ import actionTypes from './actionTypes';
 export const acceptRideAction = id => {
   return async dispatch => {
     dispatch({type: actionTypes.loaderOn});
-    console.log('Accept Ride Action id ====>', id);
-    console.log('Accept Ride Action id type ====>', typeof id);
-    console.log('Accept Ride Action id is truthy ====>', !!id);
+    console.log('[API] 🚀 ========== ACCEPT RIDE ACTION ==========');
+    console.log('[API] 🚀 Ride ID:', id);
+    console.log('[API] 🚀 Ride ID type:', typeof id);
+    console.log('[API] 🚀 Ride ID is truthy:', !!id);
+    console.log('[API] 🚀 Timestamp:', new Date().toISOString());
     
     // Validate id before making API call
     if (!id) {
       const error = 'Ride ID is missing. Cannot accept ride without a valid ID.';
-      console.error('Accept Ride Action Error:', error);
+      console.error('[API] ❌ Accept Ride Action Error:', error);
       dispatch({type: actionTypes.loaderOff});
       return Promise.reject(error);
     }
     
-    //   console.log('DATA from ContactUs', data);
     try {
+      console.log('[API] 📡 Calling API endpoint:', `${endpoints.ride.AcceptRide}/${id}`);
       const response = await get(`${endpoints.ride.AcceptRide}/${id}`);
+      
+      console.log('[API] ✅ ========== ACCEPT RIDE API RESPONSE ==========');
+      console.log('[API] ✅ Full Response:', JSON.stringify(response, null, 2));
+      console.log('[API] ✅ Response type:', typeof response);
+      console.log('[API] ✅ Response keys:', response ? Object.keys(response) : 'null');
+      console.log('[API] ✅ response.message:', response?.message);
+      console.log('[API] ✅ response.ride:', response?.ride);
+      console.log('[API] ✅ response.ride?._id:', response?.ride?._id);
+      console.log('[API] ✅ response.ride?.rideStatus:', response?.ride?.rideStatus);
+      console.log('[API] ✅ response.ride?.status:', response?.ride?.status);
+      console.log('[API] ✅ response.requiresPayment:', response?.requiresPayment);
+      console.log('[API] ===========================================');
+      
       dispatch({type: actionTypes.loaderOff});
       return Promise.resolve(response);
     } catch (e) {
-      console.error('Accept Ride Action API Error:', e);
+      console.error('[API] ❌ ========== ACCEPT RIDE API ERROR ==========');
+      console.error('[API] ❌ Error:', e);
+      console.error('[API] ❌ Error message:', e?.message);
+      console.error('[API] ❌ Error details:', JSON.stringify(e, null, 2));
+      console.error('[API] ===========================================');
       dispatch({type: actionTypes.loaderOff});
       return Promise.reject(e);
     }
@@ -144,17 +163,38 @@ export const markRidePaidAction = id => {
 };
 
 export const rideDeatilsAction = id => {
-  console.log('Ride Details action id =====>', id);
+  console.log('[API] 🚀 ========== RIDE DETAILS ACTION ==========');
+  console.log('[API] 🚀 Ride ID:', id);
+  console.log('[API] 🚀 Ride ID type:', typeof id);
+  console.log('[API] 🚀 Timestamp:', new Date().toISOString());
+  
   return async dispatch => {
     // dispatch({type: actionTypes.loaderOn});
-    //   console.log('DATA from ContactUs', data);
     try {
+      console.log('[API] 📡 Calling API endpoint:', `${endpoints.ride.RideDetails}/${id}`);
       const response = await get(`${endpoints.ride.RideDetails}/${id}`);
-      console.log('Response from Ride Details ====>', response?.ride?._id);
+      
+      console.log('[API] ✅ ========== RIDE DETAILS API RESPONSE ==========');
+      console.log('[API] ✅ Full Response:', JSON.stringify(response, null, 2));
+      console.log('[API] ✅ Response type:', typeof response);
+      console.log('[API] ✅ Response keys:', response ? Object.keys(response) : 'null');
+      console.log('[API] ✅ response.ride:', response?.ride);
+      console.log('[API] ✅ response.ride?._id:', response?.ride?._id);
+      console.log('[API] ✅ response.ride?.rideStatus:', response?.ride?.rideStatus);
+      console.log('[API] ✅ response.ride?.status:', response?.ride?.status);
+      console.log('[API] ✅ response.ride?.paymentStatus:', response?.ride?.paymentStatus);
+      console.log('[API] ✅ response.ride?.paymentMethod:', response?.ride?.paymentMethod);
+      console.log('[API] ✅ response.ride?.user:', response?.ride?.user ? 'exists' : 'null');
+      console.log('[API] ===========================================');
+      
       // dispatch({type: actionTypes.loaderOff});
       return Promise.resolve(response);
     } catch (e) {
-      console.log('Error from Ride Details ===>', e);
+      console.error('[API] ❌ ========== RIDE DETAILS API ERROR ==========');
+      console.error('[API] ❌ Error:', e);
+      console.error('[API] ❌ Error message:', e?.message);
+      console.error('[API] ❌ Error details:', JSON.stringify(e, null, 2));
+      console.error('[API] ===========================================');
       // dispatch({type: actionTypes.loaderOff});
       return Promise.reject(e);
     }

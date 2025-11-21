@@ -116,14 +116,15 @@ export const tripAcceptStyles= StyleSheet.create({
     //     resizeMode: "contain"
     // },
     CardContainer:{
-
         width: vw*90,
         // paddingHorizontal: vw*8,
         alignItems: "center",
         backgroundColor: theme.colors.white,
         position: "absolute",
         bottom: vh*10,
-        borderRadius: vh*2,        // alignItems: "center",
+        borderRadius: vh*2,
+        paddingVertical: vh*2,
+        // alignItems: "center",
     },
     profileImage:{
         height: vh*8,

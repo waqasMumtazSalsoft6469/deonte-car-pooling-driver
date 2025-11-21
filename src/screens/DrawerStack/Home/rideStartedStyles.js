@@ -85,7 +85,8 @@ export const RideStartedStyles= StyleSheet.create({
     },
    
     CardContainer:{
-        height: vh*46,
+        minHeight: vh*46,
+        maxHeight: vh*70,
         width: vw*90,
         // paddingHorizontal: vw*8,
         alignItems: "center",
@@ -94,7 +95,8 @@ export const RideStartedStyles= StyleSheet.create({
         bottom: vh*10,
         borderRadius: vh*2,
         // alignItems: "center",
-        paddingVertical: vh*2
+        paddingVertical: vh*2,
+        paddingBottom: vh*3
     },
     profileImage:{
         height: vh*8,
