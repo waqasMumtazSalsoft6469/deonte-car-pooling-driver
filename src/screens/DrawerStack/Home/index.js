@@ -12,6 +12,7 @@ import {
   NativeEventEmitter,
   Alert,
   AppState,
+  TouchableOpacity,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Permission} from 'react-native-permissions';
@@ -22,6 +23,7 @@ import {RideStartedStyles} from './rideStartedStyles';
 import MapView, {Marker} from 'react-native-maps';
 import GilroyMedium from '../../../components/Wrappers/Text/GilroyMedium';
 import GilroyRegular from '../../../components/Wrappers/Text/GilroyRegular';
+import RobotoMedium from '../../../components/Wrappers/Text/RobotoMedium';
 import Ripple from 'react-native-material-ripple';
 import Button from '../../../components/Button';
 import {useDispatch, useSelector} from 'react-redux';
@@ -73,7 +75,7 @@ import {
   changeDriverStatus,
   getNotification,
 } from '../../../Redux/Actions/rider';
-import theme from '../../../utils/theme';
+import theme, { colors } from '../../../utils/theme';
 import {
   NotificationListener,
   requestUserPermission,
@@ -170,6 +172,7 @@ const Home = props => {
   });
   const [rideAccepted, setRideAccepted] = useState(false);
   const [rideStartered, setRideStarted] = useState(false);
+  const [paymentAuthorized, setPaymentAuthorized] = useState(false); // Track payment authorization status
   const [currentLatitude, setCurrentLatitude] = useState(null);
   const [currentLongitude, setCurrentLongitude] = useState(null);
   var watchID = null;
@@ -219,57 +222,97 @@ const Home = props => {
   };
   const getRideDetails = async id => {
     try {
+      console.log('[Home] 🔄 ========== FETCHING RIDE DETAILS ==========');
+      console.log('[Home] 📍 Ride ID:', id);
+      
+      if (!id) {
+        console.error('[Home] ❌ No ride ID provided to getRideDetails');
+        return;
+      }
+      
       const response = await dispatch(rideDeatilsAction(id));
+      console.log('[Home] 📍 API Response received:', JSON.stringify(response, null, 2));
+      
       const rideStatus = response?.ride?.rideStatus;
+      const normalizedStatus = rideStatus ? String(rideStatus).trim() : null;
+      
+      console.log('[Home] 📍 Ride Status from API:', rideStatus);
+      console.log('[Home] 📍 Normalized Status:', normalizedStatus);
       
       // Always set ride details and status first
       setRideDetails(response);
       setRideStatus(response?.ride);
       
-      console.log('[Home] 📍 getRideDetails - Setting status:', rideStatus);
+      // Ensure acceptRide is true if we have ride details
+      if (response?.ride) {
+        setAcceptRide(true);
+      }
       
-      if (rideStatus == 'Started') {
+      // Use case-insensitive comparison for status
+      if (normalizedStatus && normalizedStatus.toLowerCase() === 'started') {
         setRideStarted(true);
         setRideAccepted(false);
-        setStatus(rideStatus);
-        console.log('[Home] ✅ Ride Started - Status set to:', rideStatus);
-      } else if (rideStatus == 'Accepted') {
+        setStatus('Started');
+        console.log('[Home] ✅ Ride Started - Status set to: Started');
+      } else if (normalizedStatus && normalizedStatus.toLowerCase() === 'accepted') {
         setRideAccepted(true);
         setRideStarted(false);
-        setStatus(rideStatus);
-        console.log('[Home] ✅ Ride Accepted - Status set to:', rideStatus, 'rideAccepted:', true);
+        setStatus('Accepted');
+        
+        // Check payment status when ride is accepted
+        const paymentStatus = response?.ride?.paymentStatus;
+        const paymentMethod = response?.ride?.paymentMethod;
+        
+        // Payment is authorized if: status is authorized/captured OR payment method is Wallet/Cash (no authorization needed)
+        if (paymentStatus === 'authorized' || paymentStatus === 'captured' || 
+            paymentMethod === 'Wallet' || paymentMethod === 'Cash') {
+          setPaymentAuthorized(true);
+          console.log('[Home] 💳 Payment authorized - paymentStatus:', paymentStatus, 'paymentMethod:', paymentMethod);
+        } else {
+          setPaymentAuthorized(false);
+          console.log('[Home] ⏳ Payment not yet authorized - paymentStatus:', paymentStatus, 'paymentMethod:', paymentMethod);
+        }
+        
+        console.log('[Home] ✅ Ride Accepted - Status set to: Accepted');
+        console.log('[Home] ✅ rideAccepted set to: true');
+        console.log('[Home] ✅ status set to: Accepted');
       } else if (
-        rideStatus == 'Completed' ||
-        rideStatus == 'Cancelled'
+        normalizedStatus && 
+        (normalizedStatus.toLowerCase() === 'completed' || normalizedStatus.toLowerCase() === 'cancelled')
       ) {
         // Reset all ride-related state when ride is completed or cancelled
         setRideAccepted(false);
         setRideStarted(false);
-        setDistance(0); // Reset distance immediately
-        // Clear status immediately to hide route line and markers
+        setPaymentAuthorized(false);
+        setDistance(0);
         setStatus(null);
         console.log('[Home] ✅ Ride Completed/Cancelled - Status cleared');
-        // Still set ride details for display purposes (for receipt/mark paid), but clear after delay
-        // Clear ride details after a delay to allow UI to update
+        
+        // Clear ride details after a delay
         setTimeout(() => {
           setRideDetails(null);
           setRideStatus(null);
           setStatus(null);
         }, 2000);
       } else {
+        // For any other status (Pending, Searching, etc.)
         setRideAccepted(false);
         setRideStarted(false);
-        setStatus(rideStatus);
-        console.log('[Home] ✅ Other status - Status set to:', rideStatus);
+        setStatus(normalizedStatus || null);
+        console.log('[Home] ✅ Other status - Status set to:', normalizedStatus);
       }
       
-      console.log('[Home] 📍 State values being set:', {
-        rideStatus,
-        settingRideAccepted: rideStatus == 'Accepted',
-        settingRideStarted: rideStatus == 'Started',
+      console.log('[Home] 📍 Final state values:', {
+        rideStatus: normalizedStatus,
+        rideAccepted: normalizedStatus?.toLowerCase() === 'accepted',
+        rideStarted: normalizedStatus?.toLowerCase() === 'started',
+        hasRideDetails: !!response?.ride,
       });
+      console.log('[Home] ===========================================');
     } catch (err) {
-      showToast(err);
+      console.error('[Home] ❌ Error in getRideDetails:', err);
+      console.error('[Home] ❌ Error details:', JSON.stringify(err, null, 2));
+      showToast(err?.message || 'Failed to fetch ride details');
     }
   };
 
@@ -310,9 +353,26 @@ const Home = props => {
   }, []);
   useEffect(() => {
     //I Replace ReduxRideId to driverRideId
-    if (reduxRideId !== null) {
-      getRideDetails(reduxRideId);
+    if (reduxRideId !== null && reduxRideId !== undefined) {
+      console.log('[Home] 🔄 ========== REDUX RIDE ID CHANGED ==========');
+      console.log('[Home] 📍 New reduxRideId:', reduxRideId);
+      console.log('[Home] 📍 Current rideId state:', rideId);
+      
+      // Set rideId in state
       SetRideId(reduxRideId);
+      
+      // Set acceptRide to true to ensure card shows
+      setAcceptRide(true);
+      
+      // Fetch ride details
+      console.log('[Home] 🔄 Fetching ride details for reduxRideId:', reduxRideId);
+      getRideDetails(reduxRideId).then(() => {
+        console.log('[Home] ✅ Ride details fetched successfully from reduxRideId');
+      }).catch((err) => {
+        console.error('[Home] ❌ Error fetching ride details from reduxRideId:', err);
+      });
+      
+      console.log('[Home] ===========================================');
     }
     // SetRideId(driverUserId);
   }, [reduxRideId]);
@@ -380,6 +440,21 @@ const Home = props => {
 
   const handleStartRide = async () => {
     try {
+      // Check if payment is authorized before starting ride
+      // Payment is authorized if: status is authorized/captured OR payment method is Wallet/Cash (no authorization needed)
+      const paymentStatus = rideDetails?.ride?.paymentStatus;
+      const paymentMethod = rideDetails?.ride?.paymentMethod;
+      const isPaymentAuthorized = paymentAuthorized || 
+        paymentStatus === 'authorized' ||
+        paymentStatus === 'captured' ||
+        paymentMethod === 'Wallet' ||
+        paymentMethod === 'Cash';
+      
+      if (!isPaymentAuthorized) {
+        showToast('Please wait for user to authorize payment before starting the ride.');
+        return;
+      }
+
       const response = await dispatch(rideStartedAction(rideId));
       getRideDetails(rideId);
       setRideAccepted(false);
@@ -666,7 +741,10 @@ const Home = props => {
         </View>
         <PickDropLocation data={rideDetails} />
         <View style={RideStartedStyles.ButtonsStyle}>
-          <CustomButton
+          <TouchableOpacity activeOpacity={0.8} onPress={markCompletedFunc} style={{backgroundColor:colors.primaryColor , top:-vh*1, width:'100%', borderBottomLeftRadius: vh*2, borderBottomRightRadius: vh*2, justifyContent:'center', alignItems:'center', alignContent:'center', paddingVertical:vh*2}}>
+            <GilroyBold style={[RideStartedStyles.buttonText, {color:'#ffffff'}]}>Mark Completed</GilroyBold>
+          </TouchableOpacity>
+          {/* <CustomButton
             customButtonStyle={[
               status != 'Completed'
                 ? RideStartedStyles.markColor
@@ -674,8 +752,8 @@ const Home = props => {
             ]}
             onPress={markCompletedFunc}>
             Mark Completed
-          </CustomButton>
-          <CustomButton
+          </CustomButton> */}
+          {/* <CustomButton
             customButtonStyle={[
               status === 'Completed'
                 ? RideStartedStyles.markColorPaid
@@ -683,7 +761,7 @@ const Home = props => {
             ]}
             onPress={markPaidFunc}>
             Mark Paid
-          </CustomButton>
+          </CustomButton> */}
         </View>
       </View>
     );
@@ -739,9 +817,63 @@ const Home = props => {
         </CustomButton>
 
         <CustomButton
-          customButtonStyle={tripAcceptStyles.rejectBtn}
-          onPress={() => startRideRef.current.show()}>
-          Start Ride
+          customButtonStyle={[
+            tripAcceptStyles.rejectBtn,
+            (() => {
+              const paymentStatus = rideDetails?.ride?.paymentStatus;
+              const paymentMethod = rideDetails?.ride?.paymentMethod;
+              const isAuthorized = paymentAuthorized || 
+                paymentStatus === 'authorized' ||
+                paymentStatus === 'captured' ||
+                paymentMethod === 'Wallet' ||
+                paymentMethod === 'Cash';
+              
+              console.log('[Home] 🔘 Start Ride Button Render:');
+              console.log('[Home] 🔘 - paymentAuthorized:', paymentAuthorized);
+              console.log('[Home] 🔘 - paymentStatus:', paymentStatus);
+              console.log('[Home] 🔘 - paymentMethod:', paymentMethod);
+              console.log('[Home] 🔘 - isAuthorized:', isAuthorized);
+              console.log('[Home] 🔘 - Button opacity:', !isAuthorized ? 0.5 : 1.0);
+              
+              return !isAuthorized ? { opacity: 0.5 } : {};
+            })(),
+          ]}
+          onPress={() => {
+            // Check payment authorization before showing modal
+            // Payment is authorized if: status is authorized/captured OR payment method is Wallet/Cash (no authorization needed)
+            const paymentStatus = rideDetails?.ride?.paymentStatus;
+            const paymentMethod = rideDetails?.ride?.paymentMethod;
+            const isPaymentAuthorized = paymentAuthorized || 
+              paymentStatus === 'authorized' ||
+              paymentStatus === 'captured' ||
+              paymentMethod === 'Wallet' ||
+              paymentMethod === 'Cash';
+            
+            console.log('[Home] 🔘 Start Ride Button Pressed:');
+            console.log('[Home] 🔘 - paymentAuthorized:', paymentAuthorized);
+            console.log('[Home] 🔘 - paymentStatus:', paymentStatus);
+            console.log('[Home] 🔘 - paymentMethod:', paymentMethod);
+            console.log('[Home] 🔘 - isPaymentAuthorized:', isPaymentAuthorized);
+            
+            if (!isPaymentAuthorized) {
+              showToast('Please wait for user to authorize payment before starting the ride.');
+              return;
+            }
+            startRideRef.current.show();
+          }}>
+          {(() => {
+            const paymentStatus = rideDetails?.ride?.paymentStatus;
+            const paymentMethod = rideDetails?.ride?.paymentMethod;
+            const isAuthorized = paymentAuthorized || 
+              paymentStatus === 'authorized' ||
+              paymentStatus === 'captured' ||
+              paymentMethod === 'Wallet' ||
+              paymentMethod === 'Cash';
+            
+            const buttonText = isAuthorized ? 'Start Ride' : 'Waiting for Payment';
+            console.log('[Home] 🔘 Button text:', buttonText, 'isAuthorized:', isAuthorized);
+            return buttonText;
+          })()}
         </CustomButton>
       </View>
     );
@@ -999,15 +1131,26 @@ const Home = props => {
         //Ride Id 65e5dbd8fc4f2443ec589f1c
         //Coords [24.8739192,67.0672376]
 
+        // Always use driverUserId for driver coordinates
+        const driverId = driverUserId || userDetail?._id;
         const obj = {
-          userId: userDetail?._id,
-          coordinates: [latitude, longitude],
+          userId: driverId,
+          coordinates: [longitude, latitude], // GeoJSON format: [longitude, latitude]
         };
 
-        console.log('[Home] 🔵 Emitting driver coordinates to socket:', obj);
         const socket = SocketService.getSocket();
         if (socket && SocketService.isSocketConnected()) {
+          // Emit driver coordinates for location tracking
           socket.emit('drivercoordinates', obj);
+          
+          // If on active ride, also send location update to rider
+          if (rideId && driverId) {
+            socket.emit('driver:location:update', {
+              rideId: rideId,
+              driverId: driverId,
+              coordinates: [longitude, latitude],
+            });
+          }
         }
       },
       error => {
@@ -1026,13 +1169,22 @@ const Home = props => {
             // TIMEOUT - Use cached location silently
             console.log('[Home] ⏱️ Location timeout - using cached location:', {cachedLat, cachedLon});
             // Emit cached location to socket
+            const driverId = driverUserId || userDetail?._id;
             const obj = {
-              userId: userDetail?._id,
-              coordinates: [cachedLat, cachedLon],
+              userId: driverId,
+              coordinates: [cachedLon, cachedLat], // GeoJSON format: [longitude, latitude]
             };
             const socket = SocketService.getSocket();
             if (socket && SocketService.isSocketConnected()) {
               socket.emit('drivercoordinates', obj);
+              // If on active ride, also send location update to rider
+              if (rideId && driverId) {
+                socket.emit('driver:location:update', {
+                  rideId: rideId,
+                  driverId: driverId,
+                  coordinates: [cachedLon, cachedLat],
+                });
+              }
             }
             // Don't show toast - cached location is working
           } else if (error.code === 1) {
@@ -1040,25 +1192,43 @@ const Home = props => {
           } else if (error.code === 2) {
             console.log('[Home] 📍 GPS unavailable - using cached location:', {cachedLat, cachedLon});
             // Emit cached location to socket
+            const driverId = driverUserId || userDetail?._id;
             const obj = {
-              userId: userDetail?._id,
-              coordinates: [cachedLat, cachedLon],
+              userId: driverId,
+              coordinates: [cachedLon, cachedLat], // GeoJSON format: [longitude, latitude]
             };
             const socket = SocketService.getSocket();
             if (socket && SocketService.isSocketConnected()) {
               socket.emit('drivercoordinates', obj);
+              // If on active ride, also send location update to rider
+              if (rideId && driverId) {
+                socket.emit('driver:location:update', {
+                  rideId: rideId,
+                  driverId: driverId,
+                  coordinates: [cachedLon, cachedLat],
+                });
+              }
             }
             // Don't show toast - cached location is working
           } else {
             console.log('[Home] 📍 Using cached location due to error:', {cachedLat, cachedLon});
             // Emit cached location to socket
+            const driverId = driverUserId || userDetail?._id;
             const obj = {
-              userId: userDetail?._id,
-              coordinates: [cachedLat, cachedLon],
+              userId: driverId,
+              coordinates: [cachedLon, cachedLat], // GeoJSON format: [longitude, latitude]
             };
             const socket = SocketService.getSocket();
             if (socket && SocketService.isSocketConnected()) {
               socket.emit('drivercoordinates', obj);
+              // If on active ride, also send location update to rider
+              if (rideId && driverId) {
+                socket.emit('driver:location:update', {
+                  rideId: rideId,
+                  driverId: driverId,
+                  coordinates: [cachedLon, cachedLat],
+                });
+              }
             }
           }
         } else {
@@ -1129,15 +1299,21 @@ const Home = props => {
       console.log(data, 'dataaa');
       const socket = SocketService.getSocket();
       if (socket && SocketService.isSocketConnected()) {
-        if (rideId) {
-          socket.emit('drivercoordinates', {
-            userId: rideId,
-            coordinates: [floatData?.longitude, floatData?.latitude],
-          });
-        } else {
-          console.log('userId ===>', userId);
-          socket.emit('drivercoordinates', {
-            userId: userId,
+        // Always use driverId for drivercoordinates (not rideId)
+        // During active ride, also send location update to rider
+        const driverId = driverUserId || userId;
+        
+        // Always emit drivercoordinates with driverId (for driver location tracking)
+        socket.emit('drivercoordinates', {
+          userId: driverId,
+          coordinates: [floatData?.longitude, floatData?.latitude],
+        });
+        
+        // If on active ride, also emit driver:location:update for rider
+        if (rideId && driverId) {
+          socket.emit('driver:location:update', {
+            rideId: rideId,
+            driverId: driverId,
             coordinates: [floatData?.longitude, floatData?.latitude],
           });
         }
@@ -1484,10 +1660,37 @@ const Home = props => {
 
   useFocusEffect(
     useCallback(() => {
-      if (rideId) {
-        getRideDetails(rideId);
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.linear);
+      console.log('[Home] 🔄 ========== SCREEN FOCUSED ==========');
+      console.log('[Home] 📍 Current rideId state:', rideId);
+      console.log('[Home] 📍 Current reduxRideId:', reduxRideId);
+      console.log('[Home] 📍 Current status:', status);
+      console.log('[Home] 📍 Current rideAccepted:', rideAccepted);
+      
+      // Check both local rideId and Redux rideId to ensure we fetch ride details
+      const currentRideId = rideId || reduxRideId;
+      
+      if (currentRideId) {
+        console.log('[Home] ✅ Valid rideId found, fetching ride details:', currentRideId);
+        
+        // Ensure rideId state is set if it wasn't already
+        if (!rideId && reduxRideId) {
+          console.log('[Home] 📍 Setting rideId from Redux:', reduxRideId);
+          SetRideId(reduxRideId);
+        }
+        
+        // Set acceptRide to true to ensure card shows
         setAcceptRide(true);
+        
+        // Fetch ride details
+        getRideDetails(currentRideId).then(() => {
+          console.log('[Home] ✅ Ride details fetched in useFocusEffect');
+        }).catch((err) => {
+          console.error('[Home] ❌ Error fetching ride details in useFocusEffect:', err);
+        });
+        
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.linear);
+      } else {
+        console.log('[Home] ⚠️ No rideId found, skipping ride details fetch');
       }
 
       getVechileInfo();
@@ -1495,36 +1698,48 @@ const Home = props => {
       
       // Fetch driver location when screen comes into focus
       fetchDriverLocation();
-    }, [rideId]),
+      
+      console.log('[Home] ======================================');
+    }, [rideId, reduxRideId]),
   );
+
+  // Debug: Log payment authorization state changes
+  useEffect(() => {
+    console.log('[Home] 🔍 paymentAuthorized state changed:', paymentAuthorized);
+    console.log('[Home] 🔍 - rideId:', rideId);
+    console.log('[Home] 🔍 - rideAccepted:', rideAccepted);
+    console.log('[Home] 🔍 - rideDetails paymentStatus:', rideDetails?.ride?.paymentStatus);
+    console.log('[Home] 🔍 - rideDetails paymentMethod:', rideDetails?.ride?.paymentMethod);
+  }, [paymentAuthorized, rideId, rideAccepted, rideDetails]);
 
   // Track if socket is already initialized to prevent reconnection
   const socketInitializedRef = useRef(false);
   const socketListenersSetupRef = useRef(false);
+  const connectionCallbackUnsubscribeRef = useRef(null);
+  const socketRef = useRef(null);
 
   // Socket connection and setup
   useEffect(() => {
-    // Prevent multiple initializations
-    if (socketInitializedRef.current) {
-      console.log('[Home] ⚠️ Socket already initialized, skipping...');
-      return;
-    }
+    // Store current values in refs to avoid dependency issues
+    const currentDriverId = driverUserId;
+    const currentBaseUrl = base_url;
 
     const setupSocketListeners = (socketInstance) => {
-      // Prevent multiple listener setups
-      if (socketListenersSetupRef.current) {
-        console.log('[Home] ⚠️ Socket listeners already set up, skipping...');
+      if (!socketInstance) {
+        console.error('[Home] ❌ Cannot setup listeners - socket instance is null');
         return;
       }
 
       console.log('[Home] 🔧 Setting up socket listeners...');
-      socketListenersSetupRef.current = true;
       
       // Remove old listeners first to prevent duplicates
       socketInstance.off('ride:request');
       socketInstance.off('ride:accepted_by_other');
       socketInstance.off('ride:accept:success');
       socketInstance.off('ride:error');
+      socketInstance.off('ride:payment:authorized');
+      socketInstance.off('ride:status:changed');
+      socketInstance.off('reconnect');
       
       // Listen for incoming ride requests
       socketInstance.on('ride:request', (rideData) => {
@@ -1574,7 +1789,7 @@ const Home = props => {
 
       // Listen if ride was accepted by another driver
       socketInstance.on('ride:accepted_by_other', (data) => {
-        console.log('🚗 Ride accepted by another driver:', data);
+        console.log('[Home] 🚗 Ride accepted by another driver:', data);
         
         // Reset ride state
         setAcceptRide(false);
@@ -1586,48 +1801,210 @@ const Home = props => {
 
       // Listen for acceptance success
       socketInstance.on('ride:accept:success', (data) => {
-        console.log('✅ Ride acceptance confirmed:', data);
+        console.log('[Home] ✅ ========== RIDE ACCEPTANCE SUCCESS ==========');
+        console.log('[Home] 📍 Full data received:', JSON.stringify(data, null, 2));
+        console.log('[Home] 📍 data.rideId:', data?.rideId);
+        console.log('[Home] 📍 data._id:', data?._id);
+        console.log('[Home] 📍 data.ride:', data?.ride);
         
-        // Update ride details
-        if (data?.rideId || data?._id) {
-          const rideIdToFetch = data.rideId || data._id;
-          getRideDetails(rideIdToFetch);
+        // Reset payment authorization when new ride is accepted
+        setPaymentAuthorized(false);
+        
+        // Extract rideId from multiple possible locations
+        const rideIdToFetch = data?.rideId || data?._id || data?.ride?._id || data?.ride?.rideId;
+        
+        if (rideIdToFetch) {
+          console.log('[Home] ✅ Valid rideId found:', rideIdToFetch);
+          console.log('[Home] 📍 Setting rideId in state and Redux...');
+          
+          // Set rideId in state immediately
+          SetRideId(rideIdToFetch);
+          
+          // Update Redux state
+          dispatch({
+            type: actionTypes.rideId,
+            currentRideId: rideIdToFetch,
+          });
+          
+          // Set acceptRide to true to show the card
+          setAcceptRide(true);
+          
+          // If ride data is already in the response, use it directly
+          if (data?.ride) {
+            console.log('[Home] ✅ Ride data found in response, setting directly...');
+            const rideStatus = data.ride.rideStatus || data.ride.status;
+            console.log('[Home] 📍 Ride status from response:', rideStatus);
+            
+            // Set ride details directly
+            setRideDetails({ ride: data.ride });
+            setRideStatus(data.ride);
+            
+            // Set status based on ride status
+            if (rideStatus === 'Accepted' || rideStatus === 'accepted') {
+              console.log('[Home] ✅ Setting rideAccepted to true and status to Accepted');
+              setRideAccepted(true);
+              setRideStarted(false);
+              setStatus('Accepted');
+              
+              // Check payment status
+              const paymentStatus = data.ride.paymentStatus;
+              const paymentMethod = data.ride.paymentMethod;
+              if (paymentStatus === 'authorized' || paymentStatus === 'captured' || 
+                  paymentMethod === 'Wallet' || paymentMethod === 'Cash') {
+                setPaymentAuthorized(true);
+              } else {
+                setPaymentAuthorized(false);
+              }
+            }
+          }
+          
+          // Always fetch fresh ride details to ensure we have latest data
+          console.log('[Home] 🔄 Fetching fresh ride details for:', rideIdToFetch);
+          getRideDetails(rideIdToFetch).then(() => {
+            console.log('[Home] ✅ Ride details fetched successfully');
+          }).catch((err) => {
+            console.error('[Home] ❌ Error fetching ride details:', err);
+          });
+          
+          console.log('[Home] ============================================');
+        } else {
+          console.error('[Home] ❌ No rideId found in acceptance success data');
+          console.error('[Home] ❌ Available keys:', data ? Object.keys(data) : 'data is null');
         }
       });
 
       // Listen for errors
       socketInstance.on('ride:error', (error) => {
-        console.error('❌ Ride error:', error);
+        console.error('[Home] ❌ Ride error:', error);
         const errorMessage = error?.message || error?.error || 'An error occurred';
         showToast(errorMessage);
       });
+
+      // Listen for payment authorization (NEW - from API docs)
+      socketInstance.on('ride:payment:authorized', (data) => {
+        console.log('[Home] 💳 ========== PAYMENT AUTHORIZATION RECEIVED ==========');
+        console.log('[Home] 💳 Payment authorized data:', JSON.stringify(data, null, 2));
+        
+        if (data?.rideId) {
+          const authorizedRideId = String(data.rideId).trim();
+          
+          // Get current ride ID from multiple possible sources
+          const currentRideId = rideId || rideDetails?.ride?._id || rideDetails?.ride?.rideId;
+          const currentRideIdStr = currentRideId ? String(currentRideId).trim() : null;
+          
+          console.log('[Home] 💳 - Authorized Ride ID:', authorizedRideId);
+          console.log('[Home] 💳 - Current Ride ID:', currentRideIdStr);
+          console.log('[Home] 💳 - rideId state:', rideId);
+          console.log('[Home] 💳 - rideDetails ride._id:', rideDetails?.ride?._id);
+          console.log('[Home] 💳 - rideDetails ride.rideId:', rideDetails?.ride?.rideId);
+          console.log('[Home] 💳 - rideAccepted:', rideAccepted);
+          console.log('[Home] 💳 - paymentAuthorized (before):', paymentAuthorized);
+          console.log('[Home] 💳 - rideDetails exists:', !!rideDetails);
+          
+          // ALWAYS set payment authorized when we receive this event
+          // The backend only sends this to the driver who accepted the ride
+          // So we can trust it regardless of rideId matching
+          console.log('[Home] ✅ Setting paymentAuthorized to TRUE');
+          setPaymentAuthorized(true);
+          showToast('Payment authorized. You can start the ride.');
+          
+          // Update rideId if not set or different
+          if (authorizedRideId && (!rideId || String(rideId).trim() !== authorizedRideId)) {
+            console.log('[Home] 📍 Updating rideId to:', authorizedRideId);
+            SetRideId(authorizedRideId);
+          }
+          
+          // Refresh ride details to get updated payment status
+          const rideIdToFetch = currentRideIdStr || authorizedRideId;
+          if (rideIdToFetch) {
+            console.log('[Home] 🔄 Fetching ride details for:', rideIdToFetch);
+            getRideDetails(rideIdToFetch);
+          }
+          
+          console.log('[Home] 💳 ============================================');
+        } else {
+          console.error('[Home] ❌ Payment authorization event missing rideId');
+        }
+      });
+
+      // Listen for ride status changes (NEW - from API docs)
+      socketInstance.on('ride:status:changed', (data) => {
+        console.log('[Home] 🔄 Ride status changed:', data);
+        if (data?.rideId && data?.status) {
+          // Update ride status in UI
+          if (data.status === 'Started') {
+            setRideStarted(true);
+          } else if (data.status === 'Completed') {
+            setRideStarted(false);
+            setRideAccepted(false);
+          } else if (data.status === 'Cancelled') {
+            setAcceptRide(false);
+            setRideAccepted(false);
+            setRideStarted(false);
+          }
+        }
+      });
+
+      // Listen for reconnection to re-register listeners
+      socketInstance.on('reconnect', (attemptNumber) => {
+        console.log('[Home] 🔄 Socket reconnected, re-registering listeners...');
+        // Re-register listeners after reconnection
+        setupSocketListeners(socketInstance);
+      });
+
+      socketListenersSetupRef.current = true;
+      console.log('[Home] ✅ Socket listeners set up successfully');
     };
 
     const connectSocket = async () => {
       try {
         console.log('[Home] 🔌 ========== SOCKET CONNECTION SETUP ==========');
-        console.log('[Home] 📍 Driver ID:', driverUserId);
-        console.log('[Home] 📍 Base URL:', base_url);
+        console.log('[Home] 📍 Driver ID:', currentDriverId);
+        console.log('[Home] 📍 Base URL:', currentBaseUrl);
         console.log('[Home] 📍 Driver online status (switchh):', switchh);
         
-        if (!driverUserId) {
+        if (!currentDriverId) {
           console.error('[Home] ❌ Driver ID not available, skipping socket connection');
           return;
         }
 
         // Connect socket
         console.log('[Home] 🔌 Connecting socket...');
-        const socket = SocketService.connect(driverUserId, 'driver', base_url);
+        const socket = SocketService.connect(currentDriverId, 'driver', currentBaseUrl);
         
         if (socket) {
           console.log('[Home] ✅ Socket instance created');
+          socketRef.current = socket;
           socketInitializedRef.current = true;
           
-          // Set up listeners only once
+          // Register connection state change callback
+          if (connectionCallbackUnsubscribeRef.current) {
+            connectionCallbackUnsubscribeRef.current();
+          }
+          
+          connectionCallbackUnsubscribeRef.current = SocketService.onConnectionChange((event, data) => {
+            console.log('[Home] 📡 Connection state changed:', event, data);
+            
+            if (event === 'reconnect' && socket) {
+              console.log('[Home] 🔄 Reconnection detected, re-registering listeners...');
+              // Reset listener setup flag to allow re-registration
+              socketListenersSetupRef.current = false;
+              setupSocketListeners(socket);
+            } else if (event === 'connect' && socket) {
+              console.log('[Home] ✅ Connection established, setting up listeners...');
+              socketListenersSetupRef.current = false;
+              setupSocketListeners(socket);
+            }
+          });
+          
+          // Set up listeners
           if (socket.connected) {
+            console.log('[Home] ✅ Socket already connected, setting up listeners...');
             setupSocketListeners(socket);
           } else {
+            console.log('[Home] ⏳ Socket not yet connected, waiting for connect event...');
             socket.once('connect', () => {
+              console.log('[Home] ✅ Socket connected, setting up listeners...');
               setupSocketListeners(socket);
             });
           }
@@ -1657,22 +2034,35 @@ const Home = props => {
       }
     };
 
-    connectSocket();
+    // Only initialize once, but allow re-initialization if driverId or baseUrl changes
+    if (!socketInitializedRef.current) {
+      connectSocket();
+    }
 
     // Cleanup on unmount - only remove listeners, don't disconnect (socket is shared)
     return () => {
       console.log('[Home] 🧹 Cleaning up socket listeners...');
-      const socket = SocketService.getSocket();
+      const socket = socketRef.current || SocketService.getSocket();
       if (socket) {
         socket.off('ride:request');
         socket.off('ride:accepted_by_other');
         socket.off('ride:accept:success');
         socket.off('ride:error');
+        socket.off('ride:payment:authorized');
+        socket.off('ride:status:changed');
+        socket.off('reconnect');
         socketListenersSetupRef.current = false;
       }
+      
+      // Unsubscribe from connection callbacks
+      if (connectionCallbackUnsubscribeRef.current) {
+        connectionCallbackUnsubscribeRef.current();
+        connectionCallbackUnsubscribeRef.current = null;
+      }
+      
       // Don't disconnect - socket is shared across screens
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [driverUserId, base_url]); // Include dependencies that should trigger re-initialization
 
   // Function to send driver location via socket
   const sendDriverLocation = useCallback(() => {
@@ -1714,27 +2104,24 @@ const Home = props => {
 
       // Prepare location data
       // According to documentation: { userId: driverId, coordinates: [longitude, latitude] }
+      const driverId = driverUserId || userId;
       const locationData = {
-        userId: driverUserId || userId,
+        userId: driverId,
         coordinates: [currentLongitude, currentLatitude], // GeoJSON format: [longitude, latitude]
       };
-
-      console.log('[Home] 📍 ========== SENDING DRIVER LOCATION ==========');
-      console.log('[Home] 📍 Location data:', locationData);
-      console.log('[Home] 📍 Driver ID (userId):', driverUserId || userId);
-      console.log('[Home] 📍 Coordinates (GeoJSON):', locationData.coordinates);
-      console.log('[Home] 📍 Latitude:', currentLatitude);
-      console.log('[Home] 📍 Longitude:', currentLongitude);
-      console.log('[Home] 📍 Timestamp:', new Date().toISOString());
-      console.log('[Home] 📍 Socket connected:', socket.connected);
-      console.log('[Home] 📍 Socket ID:', socket.id);
 
       // Emit location to socket
       // Event name: 'drivercoordinates' (as per documentation)
       socket.emit('drivercoordinates', locationData);
-      console.log('[Home] ✅ Location sent successfully via socket');
-      console.log('[Home] 📍 Event emitted: drivercoordinates');
-      console.log('[Home] ============================================');
+      
+      // If on active ride, also send location update to rider
+      if (rideId && driverId) {
+        socket.emit('driver:location:update', {
+          rideId: rideId,
+          driverId: driverId,
+          coordinates: [currentLongitude, currentLatitude],
+        });
+      }
     } catch (error) {
       console.error('[Home] ❌ Error sending driver location:', error);
       console.error('[Home] Error details:', {
@@ -1899,11 +2286,20 @@ const Home = props => {
 
   //Here ride flow
   const renderView = () => {
-    console.log('[Home] 🔍 renderView - Current state:', {
+    const normalizedStatus = status ? String(status).trim().toLowerCase() : null;
+    const rideStatusFromDetails = rideDetails?.ride?.rideStatus ? String(rideDetails.ride.rideStatus).trim().toLowerCase() : null;
+    
+    console.log('[Home] 🔍 ========== RENDER VIEW ==========');
+    console.log('[Home] 📍 Current state:', {
       status,
+      normalizedStatus,
       rideAccepted,
       rideStartered,
+      acceptRide,
       hasRideDetails: !!rideDetails,
+      rideStatusFromDetails,
+      rideId,
+      reduxRideId,
     });
     
     //status == 'Pending'
@@ -1912,9 +2308,32 @@ const Home = props => {
         <View style={{flex: 1, alignItems: 'center'}}>{TripRequest()}</View>
       );
     }
-    //status == 'Accepted' && Distance < 0.4
-    else if (status == 'Accepted' && rideAccepted) {
-      console.log('[Home] ✅ Rendering TripStart component');
+    // Check if status is 'Accepted' (case-insensitive)
+    else if (normalizedStatus === 'accepted' && rideAccepted) {
+      console.log('[Home] ✅ Rendering TripStart component (main condition)');
+      console.log('[Home] 📍 Condition met - status is Accepted and rideAccepted is true');
+      return <View style={{flex: 1, alignItems: 'center'}}>{TripStart()}</View>;
+    }
+    // Fallback: Show TripStart if we have ride details with Accepted status
+    else if (acceptRide && rideDetails && (rideStatusFromDetails === 'accepted' || normalizedStatus === 'accepted')) {
+      console.log('[Home] ✅ Rendering TripStart component (fallback condition)');
+      console.log('[Home] 📍 Fallback condition met:', {
+        acceptRide,
+        hasRideDetails: !!rideDetails,
+        rideStatusFromDetails,
+        normalizedStatus,
+      });
+      
+      // Ensure state is set correctly for next render
+      if (!rideAccepted) {
+        console.log('[Home] 🔄 Setting rideAccepted to true');
+        setRideAccepted(true);
+      }
+      if (status !== 'Accepted') {
+        console.log('[Home] 🔄 Setting status to Accepted');
+        setStatus('Accepted');
+      }
+      
       return <View style={{flex: 1, alignItems: 'center'}}>{TripStart()}</View>;
     } else if (
       status == 'Started' ||

@@ -59,6 +59,7 @@ const RidesRequest = () => {
   const socketRef = useRef(null);
   const socketInitializedRef = useRef(false);
   const socketListenersSetupRef = useRef(false);
+  const connectionCallbackUnsubscribeRef = useRef(null);
   
   // Get driver ID from Redux store
   const userData = useSelector(state => state.UserReducer?.userData);
@@ -270,70 +271,19 @@ const RidesRequest = () => {
   };
   // Initialize socket connection
   useEffect(() => {
-    // Prevent multiple initializations
-    if (socketInitializedRef.current) {
-      console.log('[RidesRequest] ⚠️ Socket already initialized, skipping...');
-      return;
-    }
+    // Store current values in refs to avoid dependency issues
+    const currentDriverId = driverId;
+    const currentBaseUrl = base_url;
 
     console.log('[RidesRequest] ========== SOCKET CONNECTION useEffect RUNNING ==========');
     console.log('[RidesRequest] 📍 Component mounted');
-    console.log('[RidesRequest] 📍 Driver ID:', driverId);
-    console.log('[RidesRequest] 📍 Driver ID exists?', !!driverId);
-    console.log('[RidesRequest] 📍 Base URL:', base_url);
+    console.log('[RidesRequest] 📍 Driver ID:', currentDriverId);
+    console.log('[RidesRequest] 📍 Driver ID exists?', !!currentDriverId);
+    console.log('[RidesRequest] 📍 Base URL:', currentBaseUrl);
     
-    const connectSocket = async () => {
-      try {
-        console.log('[RidesRequest] 🔌 Starting socket connection process...');
-        
-        if (!driverId) {
-          console.log('[RidesRequest] ⚠️ Driver ID not available, skipping socket connection');
-          return;
-        }
-
-        // Check if socket is already connected
-        const existingSocket = SocketService.getSocket();
-        const isAlreadyConnected = SocketService.isSocketConnected();
-        
-        console.log('[RidesRequest] 📍 Existing socket:', !!existingSocket);
-        console.log('[RidesRequest] 📍 Is already connected?', isAlreadyConnected);
-        
-        // Connect socket (will reuse existing connection if already connected)
-        console.log('[RidesRequest] 🔌 Calling SocketService.connect...');
-        const socket = SocketService.connect(driverId, 'driver', base_url);
-        
-        console.log('[RidesRequest] 📍 Socket instance returned:', !!socket);
-        
-        if (socket) {
-          socketRef.current = socket;
-          socketInitializedRef.current = true;
-          console.log('[RidesRequest] ✅ Socket instance stored in ref');
-          
-          // Set up listeners - handle both cases: already connected or connecting
-          if (isAlreadyConnected || socket.connected) {
-            console.log('[RidesRequest] ✅ Socket already connected, setting up listeners...');
-            setupSocketListeners(socket);
-          } else {
-            console.log('[RidesRequest] ⏳ Socket not yet connected, waiting...');
-            // Set up listeners when socket connects
-            socket.once('connect', () => {
-              console.log('[RidesRequest] ✅ Socket connected! Setting up listeners...');
-              setupSocketListeners(socket);
-            });
-          }
-        } else {
-          console.error('[RidesRequest] ❌ Socket instance is null!');
-        }
-      } catch (error) {
-        console.error('[RidesRequest] ❌ Error connecting socket:', error);
-        console.error('[RidesRequest] ❌ Error stack:', error.stack);
-      }
-    };
-
     const setupSocketListeners = (socketInstance) => {
-      // Prevent multiple listener setups
-      if (socketListenersSetupRef.current) {
-        console.log('[RidesRequest] ⚠️ Socket listeners already set up, skipping...');
+      if (!socketInstance) {
+        console.error('[RidesRequest] ❌ Cannot setup listeners - socket instance is null');
         return;
       }
 
@@ -341,8 +291,6 @@ const RidesRequest = () => {
       console.log('[RidesRequest] 📍 Socket instance:', !!socketInstance);
       console.log('[RidesRequest] 📍 Socket connected:', socketInstance?.connected);
       console.log('[RidesRequest] 📍 Socket ID:', socketInstance?.id);
-      
-      socketListenersSetupRef.current = true;
       
       // Remove old listeners to prevent duplicates
       socketInstance.off('ride:request');
@@ -354,6 +302,7 @@ const RidesRequest = () => {
       socketInstance.off('connect');
       socketInstance.off('disconnect');
       socketInstance.off('connect_error');
+      socketInstance.off('reconnect');
       
       console.log('[RidesRequest] ✅ Old listeners removed');
       
@@ -473,12 +422,91 @@ const RidesRequest = () => {
       socketInstance.on('connect_error', (error) => {
         console.error('[RidesRequest] ❌ Socket connection error:', error);
       });
+
+      // Listen for reconnection to re-register listeners
+      socketInstance.on('reconnect', (attemptNumber) => {
+        console.log('[RidesRequest] 🔄 Socket reconnected, re-registering listeners...');
+        // Re-register listeners after reconnection
+        setupSocketListeners(socketInstance);
+      });
       
+      socketListenersSetupRef.current = true;
       console.log('[RidesRequest] ✅ All socket listeners set up successfully');
       console.log('[RidesRequest] ============================================');
     };
 
-    connectSocket();
+    const connectSocket = async () => {
+      try {
+        console.log('[RidesRequest] 🔌 Starting socket connection process...');
+        
+        if (!currentDriverId) {
+          console.log('[RidesRequest] ⚠️ Driver ID not available, skipping socket connection');
+          return;
+        }
+
+        // Check if socket is already connected
+        const existingSocket = SocketService.getSocket();
+        const isAlreadyConnected = SocketService.isSocketConnected();
+        
+        console.log('[RidesRequest] 📍 Existing socket:', !!existingSocket);
+        console.log('[RidesRequest] 📍 Is already connected?', isAlreadyConnected);
+        
+        // Connect socket (will reuse existing connection if already connected)
+        console.log('[RidesRequest] 🔌 Calling SocketService.connect...');
+        const socket = SocketService.connect(currentDriverId, 'driver', currentBaseUrl);
+        
+        console.log('[RidesRequest] 📍 Socket instance returned:', !!socket);
+        
+        if (socket) {
+          socketRef.current = socket;
+          socketInitializedRef.current = true;
+          console.log('[RidesRequest] ✅ Socket instance stored in ref');
+          
+          // Register connection state change callback
+          if (connectionCallbackUnsubscribeRef.current) {
+            connectionCallbackUnsubscribeRef.current();
+          }
+          
+          connectionCallbackUnsubscribeRef.current = SocketService.onConnectionChange((event, data) => {
+            console.log('[RidesRequest] 📡 Connection state changed:', event, data);
+            
+            if (event === 'reconnect' && socket) {
+              console.log('[RidesRequest] 🔄 Reconnection detected, re-registering listeners...');
+              // Reset listener setup flag to allow re-registration
+              socketListenersSetupRef.current = false;
+              setupSocketListeners(socket);
+            } else if (event === 'connect' && socket) {
+              console.log('[RidesRequest] ✅ Connection established, setting up listeners...');
+              socketListenersSetupRef.current = false;
+              setupSocketListeners(socket);
+            }
+          });
+          
+          // Set up listeners - handle both cases: already connected or connecting
+          if (isAlreadyConnected || socket.connected) {
+            console.log('[RidesRequest] ✅ Socket already connected, setting up listeners...');
+            setupSocketListeners(socket);
+          } else {
+            console.log('[RidesRequest] ⏳ Socket not yet connected, waiting...');
+            // Set up listeners when socket connects
+            socket.once('connect', () => {
+              console.log('[RidesRequest] ✅ Socket connected! Setting up listeners...');
+              setupSocketListeners(socket);
+            });
+          }
+        } else {
+          console.error('[RidesRequest] ❌ Socket instance is null!');
+        }
+      } catch (error) {
+        console.error('[RidesRequest] ❌ Error connecting socket:', error);
+        console.error('[RidesRequest] ❌ Error stack:', error.stack);
+      }
+    };
+
+    // Only initialize once, but allow re-initialization if driverId or baseUrl changes
+    if (!socketInitializedRef.current) {
+      connectSocket();
+    }
 
     // Cleanup on unmount - only remove listeners, don't disconnect (socket is shared)
     return () => {
@@ -497,8 +525,15 @@ const RidesRequest = () => {
         socket.off('connect');
         socket.off('disconnect');
         socket.off('connect_error');
+        socket.off('reconnect');
         socketListenersSetupRef.current = false;
         console.log('[RidesRequest] ✅ Socket listeners removed');
+      }
+      
+      // Unsubscribe from connection callbacks
+      if (connectionCallbackUnsubscribeRef.current) {
+        connectionCallbackUnsubscribeRef.current();
+        connectionCallbackUnsubscribeRef.current = null;
       }
       
       // Don't disconnect the socket here as it might be used by other screens
@@ -507,7 +542,7 @@ const RidesRequest = () => {
       socketInitializedRef.current = false;
       console.log('[RidesRequest] ✅ Cleanup complete');
     };
-  }, []); // Empty dependency array - only run once on mount
+  }, [driverId, base_url]); // Include dependencies that should trigger re-initialization
 
   useFocusEffect(
     useCallback(() => {

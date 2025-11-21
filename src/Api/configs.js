@@ -70,7 +70,7 @@ export const endpoints = {
 
 // new base url for 
 // export const base_url = 'https://react.customdev.solutions:6066/';
-export const base_url = 'https://ccbaaf090474.ngrok-free.app/';
+export const base_url = 'https://50cb42e11416.ngrok-free.app/';
 
 // dummy ngrok url
 // export const base_url = 'https://7c3a38c651f5.ngrok-free.app/';

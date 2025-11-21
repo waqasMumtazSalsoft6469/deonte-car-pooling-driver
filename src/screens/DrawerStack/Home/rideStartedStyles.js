@@ -60,7 +60,7 @@ export const RideStartedStyles= StyleSheet.create({
     },
     ButtonsStyle:{
         width: vw*90,
-        flexDirection: "row"
+        flexDirection: "row",
     },
     buttonText:{
         color: theme.colors.white
